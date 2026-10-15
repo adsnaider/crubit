@@ -61,6 +61,7 @@ unicode-ident = "1"
 # TODO: Depend on a zngur release once the C++-to-Rust support is upstream.
 zngur-def = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "f5ab523d1dc1557ad67103530fe106ebb69dda91", features = ["printing"] }
 zngur = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "f5ab523d1dc1557ad67103530fe106ebb69dda91" }
+zngur-parser = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "f5ab523d1dc1557ad67103530fe106ebb69dda91" }
 zngur-lib = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "f5ab523d1dc1557ad67103530fe106ebb69dda91" }
 
 [workspace.package]

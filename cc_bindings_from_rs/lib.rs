@@ -85,6 +85,14 @@ fn new_db<'tcx>(
         let paths = crate_name_to_include_paths.entry(name).or_default();
         paths.push(CcInclude::user_header(include_path.as_str().into()));
     }
+    // In zngur mode, the crates of `--zng-import`ed files are bound by those files, so their items
+    // can be named. (The "include path" isn't used to generate `.zng` files.)
+    for (crate_name, zng_file) in &cmdline.zng_imports {
+        let name =
+            crate_renames.get(crate_name.as_str()).cloned().unwrap_or(crate_name.as_str().into());
+        let paths = crate_name_to_include_paths.entry(name).or_default();
+        paths.push(CcInclude::user_header(zng_file.as_str().into()));
+    }
     let mut ignore_symbols_from_files: HashSet<PathBuf> = HashSet::new();
     for file in &cmdline.ignore_symbols_from_files {
         ignore_symbols_from_files.insert(file.to_path_buf());
@@ -110,8 +118,69 @@ fn new_db<'tcx>(
     )
 }
 
+/// Returns the path of `path` relative to the directory `dir`, as written in `.zng` files: with
+/// `/` separators, and starting with `./` or `../`.
+fn zng_relative_path(dir: &Path, path: &Path) -> Result<String> {
+    // E.g. the parent of `foo.zng`.
+    let dir = if dir.as_os_str().is_empty() { Path::new(".") } else { dir };
+    let dir = std::path::absolute(dir)?;
+    let path = std::path::absolute(path)?;
+    let dir: Vec<_> = dir.components().collect();
+    let path: Vec<_> = path.components().collect();
+    let common = dir.iter().zip(&path).take_while(|(a, b)| a == b).count();
+    let mut parts = vec![];
+    if common == dir.len() {
+        parts.push(".".to_string());
+    }
+    parts.extend(std::iter::repeat_n("..".to_string(), dir.len() - common));
+    parts.extend(path[common..].iter().map(|c| c.as_os_str().to_string_lossy().into_owned()));
+    Ok(parts.join("/"))
+}
+
+/// Writes the zngur `.zng` file of the crate (`--zng-out`), instead of crubit's own bindings.
+fn generate_zng_file(cmdline: &Cmdline, tcx: TyCtxt, zng_out: &Path) -> Result<()> {
+    use generate_zng::{ZngImport, ZngOptions};
+
+    let (_, errors) = ErrorReport::new_rc_or_ignore(false, SourceLanguage::Rust);
+    let fatal_errors = Rc::new(FatalErrors::new());
+    let db = new_db(cmdline, tcx, errors, fatal_errors.clone());
+
+    let zng_dir = zng_out.parent().unwrap_or(Path::new(""));
+    let options = ZngOptions {
+        imports: cmdline
+            .zng_imports
+            .iter()
+            .map(|(crate_name, zng_file)| {
+                Ok(ZngImport {
+                    crate_name: crate_name.clone(),
+                    zng_file: zng_file.into(),
+                    import_path: zng_relative_path(zng_dir, Path::new(zng_file))?,
+                })
+            })
+            .collect::<Result<_>>()?,
+        merges: cmdline
+            .zng_merges
+            .iter()
+            .map(|merge| zng_relative_path(zng_dir, merge))
+            .collect::<Result<_>>()?,
+    };
+    let zng = generate_zng::generate_zng(&db, &options)?;
+
+    let fatal_error_message = fatal_errors.take_string();
+    if !fatal_error_message.is_empty() {
+        return Err(arc_anyhow::Error::msg(fatal_error_message));
+    }
+    write_file(zng_out, &zng)
+}
+
 fn run_with_tcx(cmdline: &Cmdline, tcx: TyCtxt) -> Result<()> {
     use generate_bindings::{generate_bindings, BindingsTokens};
+
+    if let Some(zng_out) = &cmdline.zng_out {
+        return generate_zng_file(cmdline, tcx, zng_out);
+    }
+    let h_out = cmdline.h_out.as_deref().expect("`--h-out` is checked by `Cmdline::new`");
+    let rs_out = cmdline.rs_out.as_deref().expect("`--rs-out` is checked by `Cmdline::new`");
 
     let generate_error_report = cmdline.error_report_out.is_some();
     let (error_report, errors) =
@@ -155,12 +224,12 @@ fn run_with_tcx(cmdline: &Cmdline, tcx: TyCtxt) -> Result<()> {
                 .expect("kythe_default_corpus is required when kythe_annotations is enabled"),
             cc_api,
         );
-        write_file(&cmdline.h_out, &cc_api)?;
+        write_file(h_out, &cc_api)?;
     } else {
         let cc_api =
             cc_tokens_to_formatted_string(cc_api, cmdline.clang_format_exe_path.as_deref())?;
         let cc_api = turn_off_clang_format(cc_api);
-        write_file(&cmdline.h_out, &cc_api)?;
+        write_file(h_out, &cc_api)?;
     }
 
     // We need to touch this file or bazel will complain that we didn't create it.
@@ -173,7 +242,7 @@ fn run_with_tcx(cmdline: &Cmdline, tcx: TyCtxt) -> Result<()> {
             RustfmtConfig::new(rustfmt_path, cmdline.rustfmt_config_path.as_deref())
         });
         let cc_api_impl = rs_tokens_to_formatted_string(cc_api_impl, rustfmt_config.as_ref())?;
-        write_file(&cmdline.rs_out, &cc_api_impl)?;
+        write_file(rs_out, &cc_api_impl)?;
     }
 
     if let Some(error_report_out) = &cmdline.error_report_out {
@@ -349,6 +418,8 @@ mod tests {
         tempdir: TempDir,
         include_guard: Option<String>,
         target: Option<String>,
+        /// Whether to generate a `.zng` file (`--zng-out`) instead of crubit's own bindings.
+        zng_out: bool,
     }
 
     /// Result of `TestArgs::run` that helps tests access test outputs (e.g. the
@@ -357,6 +428,7 @@ mod tests {
     struct TestResult {
         h_path: PathBuf,
         rs_path: PathBuf,
+        zng_path: PathBuf,
         error_report_out_path: Option<PathBuf>,
     }
 
@@ -372,7 +444,14 @@ mod tests {
                 tempdir: tempdir()?,
                 include_guard: None,
                 target: None,
+                zng_out: false,
             })
+        }
+
+        /// Generate a `.zng` file instead of crubit's own bindings.
+        fn with_zng_out(mut self) -> Self {
+            self.zng_out = true;
+            self
         }
 
         /// Use the specified `h_path` rather than auto-generating one in
@@ -454,14 +533,19 @@ mod tests {
             };
             std::fs::write(&rs_input_path, rs_input)?;
 
-            let mut args = vec![
-                "cc_bindings_from_rs_unittest_executable".to_string(),
-                format!("--h-out={}", h_path.display()),
-                format!("--rs-out={}", rs_path.display()),
-                "--crubit-support-path-format=<crubit/support/{header}>".to_string(),
-                format!("--clang-format-exe-path={CLANG_FORMAT_EXE_PATH}"),
-                format!("--rustfmt-exe-path={RUSTFMT_EXE_PATH}"),
-            ];
+            let mut args = vec!["cc_bindings_from_rs_unittest_executable".to_string()];
+            let zng_path = self.tempdir.path().join("test_crate.zng");
+            if self.zng_out {
+                args.push(format!("--zng-out={}", zng_path.display()));
+            } else {
+                args.extend([
+                    format!("--h-out={}", h_path.display()),
+                    format!("--rs-out={}", rs_path.display()),
+                    "--crubit-support-path-format=<crubit/support/{header}>".to_string(),
+                    format!("--clang-format-exe-path={CLANG_FORMAT_EXE_PATH}"),
+                    format!("--rustfmt-exe-path={RUSTFMT_EXE_PATH}"),
+                ]);
+            }
 
             let mut error_report_out_path = None;
             if let Some(error_report_out) = self.error_report_out.as_ref() {
@@ -568,8 +652,41 @@ mod tests {
             let cmdline = Cmdline::new(&args)?;
             run_with_cmdline_args(&cmdline)?;
 
-            Ok(TestResult { h_path, rs_path, error_report_out_path })
+            Ok(TestResult { h_path, rs_path, zng_path, error_report_out_path })
         }
+    }
+
+    #[test]
+    fn test_zng_out() -> Result<()> {
+        let test_args = TestArgs::default_args()?.with_zng_out();
+        let test_result = test_args.run().expect("--zng-out should succeed");
+
+        // Only the `.zng` file is written.
+        assert!(!test_result.h_path.exists());
+        assert!(!test_result.rs_path.exists());
+        let zng = std::fs::read_to_string(&test_result.zng_path)?;
+        assert_starts_with(
+            &zng,
+            "// Automatically @generated zngur IDL for the following Rust crate:\n\
+             // test_crate\n",
+        );
+        assert!(
+            zng.ends_with("mod ::test_crate::public_module {\n    fn public_function();\n}\n"),
+            "{zng}"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn test_zng_relative_path() -> Result<()> {
+        let rel = |dir: &str, path: &str| zng_relative_path(Path::new(dir), Path::new(path));
+        assert_eq!(rel("out/a", "out/a/extra.zng")?, "./extra.zng");
+        assert_eq!(rel("out/a", "out/a/sub/x.zng")?, "./sub/x.zng");
+        assert_eq!(rel("out/a", "out/b/dep.zng")?, "../b/dep.zng");
+        assert_eq!(rel("out/a/b", "src/dep.zng")?, "../../../src/dep.zng");
+        assert_eq!(rel("", "dep.zng")?, "./dep.zng");
+        assert_eq!(rel("/x/y", "/x/z/dep.zng")?, "../z/dep.zng");
+        Ok(())
     }
 
     // TODO(lukasza): b/261074843 - Go back to exact string matching (and hardcoding thunk

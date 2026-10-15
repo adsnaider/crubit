@@ -27,6 +27,7 @@ rust_library(
         ":run_compiler",
         ":rustversion",
         "//cc_bindings_from_rs/generate_bindings",
+        "//cc_bindings_from_rs/generate_zng",
         "//common:arc_anyhow",
         "//common:code_gen_utils",
         "//common:crubit_feature",

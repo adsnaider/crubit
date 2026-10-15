@@ -277,6 +277,7 @@ dependencies = [
  "arc_anyhow",
  "cc_bindings_from_rs_cmdline",
  "cc_bindings_from_rs_generate_bindings",
+ "cc_bindings_from_rs_generate_zng",
  "cc_bindings_from_rs_run_compiler",
  "cc_bindings_from_rs_run_compiler_test_support",
  "cc_bindings_from_rs_rustversion",
@@ -345,6 +346,22 @@ dependencies = [
  "syn 2.0.119",
  "token_stream_matchers",
  "token_stream_printer",
+]
+
+[[package]]
+name = "cc_bindings_from_rs_generate_zng"
+version = "0.0.0"
+dependencies = [
+ "arc_anyhow",
+ "cc_bindings_from_rs_database",
+ "cc_bindings_from_rs_generate_bindings",
+ "cc_bindings_from_rs_query_compiler",
+ "cc_bindings_from_rs_run_compiler_test_support",
+ "cc_bindings_from_rs_test_helpers",
+ "code_gen_utils",
+ "tempfile",
+ "zngur-def",
+ "zngur-parser",
 ]
 
 [[package]]

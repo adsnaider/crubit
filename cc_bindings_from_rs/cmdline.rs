@@ -20,9 +20,9 @@ use dyn_format::Format;
 #[clap(name = "cc_bindings_from_rs")]
 #[clap(about = "Generates C++ bindings for a Rust crate", long_about = None)]
 pub struct Cmdline {
-    /// Output path for C++ header file with bindings.
+    /// Output path for C++ header file with bindings. Required unless `--zng-out` is given.
     #[clap(long, value_parser, value_name = "FILE")]
-    pub h_out: PathBuf,
+    pub h_out: Option<PathBuf>,
 
     /// Output path for C++ implementation file with bindings.
     #[clap(long, value_parser, value_name = "FILE")]
@@ -32,15 +32,32 @@ pub struct Cmdline {
     #[clap(long, value_parser, value_name = "STRING")]
     pub h_out_include_guard: Option<String>,
 
-    /// Output path for Rust implementation of the bindings.
+    /// Output path for Rust implementation of the bindings. Required unless `--zng-out` is given.
     #[clap(long, value_parser, value_name = "FILE")]
-    pub rs_out: PathBuf,
+    pub rs_out: Option<PathBuf>,
+
+    /// Output path for a zngur (https://github.com/HKalbasi/zngur) `.zng` file that describes
+    /// the crate's API, from which zngur generates the bindings. With this flag, crubit only
+    /// writes the `.zng` file: `--h-out`, `--rs-out` and `--cpp-out` must not be given.
+    #[clap(long, value_parser, value_name = "FILE")]
+    pub zng_out: Option<PathBuf>,
+
+    /// The `.zng` files of dependency crates, which the `.zng` file imports to refer to their
+    /// types. Keys are crate names. Example: "--zng-import=foo=path/to/foo.zng".
+    #[clap(long = "zng-import", value_parser = parse_key_value_pair,
+           value_name = "CRATE_NAME=FILE")]
+    pub zng_imports: Vec<(String, String)>,
+
+    /// Hand-written `.zng` files that the `.zng` file merges, to amend the generated API.
+    #[clap(long = "zng-merge", value_parser, value_name = "FILE")]
+    pub zng_merges: Vec<PathBuf>,
 
     /// This is the format to `#include` Crubit C++ support library headers,
     /// using `{header}` as the  placeholder. Example:
     /// `<crubit/support/{header}>` will produce `#include
     /// <crubit/support/hdr.h>`.
-    #[clap(long, value_parser = validate_crubit_support_path_format, value_name = "STRING")]
+    #[clap(long, value_parser = validate_crubit_support_path_format, value_name = "STRING",
+           default_value = "\"crubit/support/{header}\"")]
     pub crubit_support_path_format: Format<1>,
 
     /// Format specifier for path cross-references in "Generated from" comments.
@@ -227,6 +244,23 @@ impl Cmdline {
         // Parse `args` using the parser `derive`d by the `clap` crate.
         let mut cmdline = Self::try_parse_from(args)?;
 
+        if cmdline.zng_out.is_some() {
+            ensure!(
+                cmdline.h_out.is_none() && cmdline.rs_out.is_none() && cmdline.cpp_out.is_none(),
+                "`--h-out`, `--rs-out` and `--cpp-out` can't be used with `--zng-out`, which \
+                 only generates a `.zng` file"
+            );
+        } else {
+            ensure!(
+                cmdline.h_out.is_some() && cmdline.rs_out.is_some(),
+                "`--h-out` and `--rs-out` are required (unless `--zng-out` is given)"
+            );
+            ensure!(
+                cmdline.zng_imports.is_empty() && cmdline.zng_merges.is_empty(),
+                "`--zng-import` and `--zng-merge` can only be used with `--zng-out`"
+            );
+        }
+
         // For compatibility with `rustc_driver` expectations, we prepend `exe_name` to
         // `rustc_args.  This is needed, because `rustc_driver::RunCompiler::new`
         // expects that its `at_args` includes the name of the executable -
@@ -346,9 +380,9 @@ mod tests {
         ])
         .unwrap();
 
-        assert_eq!(Path::new("foo.h"), cmdline.h_out);
+        assert_eq!(Some(Path::new("foo.h")), cmdline.h_out.as_deref());
         assert_eq!(Some(PathBuf::from("foo_impl.cc")), cmdline.cpp_out);
-        assert_eq!(Path::new("foo_impl.rs"), cmdline.rs_out);
+        assert_eq!(Some(Path::new("foo_impl.rs")), cmdline.rs_out.as_deref());
         assert_eq!(
             Format::parse_with_metavars("<crubit/support/{header}>", &["header"]).unwrap(),
             cmdline.crubit_support_path_format,
@@ -371,6 +405,38 @@ mod tests {
         .unwrap();
 
         assert_eq!(None, cmdline.cpp_out);
+    }
+
+    #[test]
+    fn test_zng_out() {
+        let cmdline = new_cmdline([
+            "--zng-out=foo.zng",
+            "--zng-import=bar=bar/bar.zng",
+            "--zng-merge=foo_extra.zng",
+        ])
+        .unwrap();
+
+        assert_eq!(Some(Path::new("foo.zng")), cmdline.zng_out.as_deref());
+        assert_eq!(None, cmdline.h_out);
+        assert_eq!(None, cmdline.rs_out);
+        assert_eq!(vec![("bar".to_string(), "bar/bar.zng".to_string())], cmdline.zng_imports);
+        assert_eq!(vec![PathBuf::from("foo_extra.zng")], cmdline.zng_merges);
+    }
+
+    #[test]
+    fn test_zng_out_excludes_other_outputs() {
+        let err = new_cmdline(["--zng-out=foo.zng", "--h-out=foo.h"]).unwrap_err();
+        assert!(format!("{err:#}").contains("can't be used with `--zng-out`"), "{err:#}");
+    }
+
+    #[test]
+    fn test_h_out_and_rs_out_are_required_without_zng_out() {
+        let err = new_cmdline(["--h-out=foo.h"]).unwrap_err();
+        assert!(format!("{err:#}").contains("are required"), "{err:#}");
+
+        let err =
+            new_cmdline(["--h-out=foo.h", "--rs-out=foo.rs", "--zng-merge=extra.zng"]).unwrap_err();
+        assert!(format!("{err:#}").contains("can only be used with `--zng-out`"), "{err:#}");
     }
 
     #[test]
@@ -417,8 +483,8 @@ mod tests {
 
         let flag_file_arg = format!("@{}", tmpfile.display());
         let cmdline = new_cmdline([flag_file_arg.as_str()]).unwrap();
-        assert_eq!(Path::new("foo.h"), cmdline.h_out);
-        assert_eq!(Path::new("foo_impl.rs"), cmdline.rs_out);
+        assert_eq!(Some(Path::new("foo.h")), cmdline.h_out.as_deref());
+        assert_eq!(Some(Path::new("foo_impl.rs")), cmdline.rs_out.as_deref());
         let rustc_args = &cmdline.rustc_args;
         assert!(
             itertools::equal(

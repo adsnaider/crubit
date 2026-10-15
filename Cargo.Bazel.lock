@@ -1,5 +1,5 @@
 {
-  "checksum": "da40eb07209118553ef54f64b9972d611f98b3c4385f4457d72aad1d82344fa7",
+  "checksum": "3b956616640ecf6f76890c640b0291e7f191582ad048610b8eb8abb6df7dda86",
   "crates": {
     "aho-corasick 1.1.5": {
       "name": "aho-corasick",
@@ -1804,6 +1804,59 @@
       "license": null,
       "license_ids": [],
       "license_file": "../../../../LICENSE"
+    },
+    "cc_bindings_from_rs_generate_zng 0.0.0": {
+      "name": "cc_bindings_from_rs_generate_zng",
+      "version": "0.0.0",
+      "package_url": "https://github.com/google/crubit",
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "generate_zng",
+            "crate_root": "../../../cc_bindings_from_rs/generate_zng/generate_zng.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "generate_zng",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "zngur-def 0.11.0",
+              "target": "zngur_def"
+            },
+            {
+              "id": "zngur-parser 0.11.0",
+              "target": "zngur_parser"
+            }
+          ],
+          "selects": {}
+        },
+        "deps_dev": {
+          "common": [
+            {
+              "id": "tempfile 3.27.0",
+              "target": "tempfile"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2024",
+        "version": "0.0.0"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": "../../../LICENSE"
     },
     "cc_bindings_from_rs_query_compiler 0.0.0": {
       "name": "cc_bindings_from_rs_query_compiler",
@@ -13261,6 +13314,12 @@
         "compile_data_glob": [
           "**"
         ],
+        "crate_features": {
+          "common": [
+            "printing"
+          ],
+          "selects": {}
+        },
         "deps": {
           "common": [
             {
@@ -13484,6 +13543,7 @@
     "cc_bindings_from_rs_crubit_attr 0.0.0": "cargo/cc_bindings_from_rs/crubit_attr",
     "cc_bindings_from_rs_database 0.0.0": "cargo/cc_bindings_from_rs/generate_bindings/database/database",
     "cc_bindings_from_rs_generate_bindings 0.0.0": "cargo/cc_bindings_from_rs/generate_bindings/generate_bindings",
+    "cc_bindings_from_rs_generate_zng 0.0.0": "cargo/cc_bindings_from_rs/generate_zng",
     "cc_bindings_from_rs_query_compiler 0.0.0": "cargo/cc_bindings_from_rs/generate_bindings/query_compiler",
     "cc_bindings_from_rs_run_compiler 0.0.0": "cargo/cc_bindings_from_rs/run_compiler",
     "cc_bindings_from_rs_run_compiler_test_support 0.0.0": "cargo/cc_bindings_from_rs/run_compiler_test_support",
@@ -13697,7 +13757,9 @@
     "tempfile 3.27.0",
     "unicode-ident 1.0.26",
     "zngur 0.11.0",
-    "zngur-lib 0.11.0"
+    "zngur-def 0.11.0",
+    "zngur-lib 0.11.0",
+    "zngur-parser 0.11.0"
   ],
   "direct_dev_deps": [
     "googletest 0.14.3",

@@ -19,6 +19,7 @@ doctest = false
 
 [dependencies]
 generate_bindings = { path = "../../../cargo/cc_bindings_from_rs/generate_bindings/generate_bindings", package = "cc_bindings_from_rs_generate_bindings"}
+generate_zng = { path = "../../../cargo/cc_bindings_from_rs/generate_zng", package = "cc_bindings_from_rs_generate_zng"}
 cmdline = { path = "../../../cargo/cc_bindings_from_rs/cmdline", package = "cc_bindings_from_rs_cmdline"}
 run_compiler = { path = "../../../cargo/cc_bindings_from_rs/run_compiler", package = "cc_bindings_from_rs_run_compiler"}
 rustversion = { path = "../../../cargo/cc_bindings_from_rs/rustversion", package = "cc_bindings_from_rs_rustversion"}
