@@ -147,6 +147,24 @@ absl::StatusOr<BindingsAndMetadata> GenerateBindingsAndMetadata(
     ir_out = ir;
   }
 
+  // zngur mode: a `.zng` file instead of the bindings.
+  if (!args.zng_out.empty()) {
+    CRUBIT_ASSIGN_OR_RETURN(
+        std::string zng,
+        GenerateZng(std::move(ir),
+                    ZngOptions{.zng_out = args.zng_out,
+                               .crate_name = args.zng_crate_name,
+                               .imports = args.zng_imports,
+                               .merges = args.zng_merges},
+                    args.is_golden_test));
+    return BindingsAndMetadata{
+        .ir = std::move(ir_out),
+        .namespaces = std::move(top_level_namespaces),
+        .instantiations = std::move(instantiations),
+        .zng = std::move(zng),
+    };
+  }
+
   CRUBIT_ASSIGN_OR_RETURN(
       Bindings bindings,
       GenerateBindings(std::move(ir), args.crubit_support_path_format,

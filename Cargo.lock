@@ -1322,6 +1322,7 @@ dependencies = [
  "rs_bindings_from_cc_database",
  "rs_bindings_from_cc_generate_bindings",
  "rs_bindings_from_cc_generate_bindings_rust_proto",
+ "rs_bindings_from_cc_generate_zng",
  "rs_bindings_from_cc_ir",
  "rs_bindings_from_cc_ir_rust_proto",
 ]
@@ -1712,6 +1713,17 @@ dependencies = [
  "syn 2.0.119",
  "token_stream_matchers",
  "token_stream_printer",
+]
+
+[[package]]
+name = "rs_bindings_from_cc_generate_zng"
+version = "0.0.0"
+dependencies = [
+ "arc_anyhow",
+ "quote",
+ "rs_bindings_from_cc_ir",
+ "zngur-def",
+ "zngur-parser",
 ]
 
 [[package]]

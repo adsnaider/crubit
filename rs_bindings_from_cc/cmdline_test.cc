@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <functional>
 #include <initializer_list>
 #include <iterator>
 #include <string>
@@ -70,6 +71,58 @@ absl::StatusOr<CmdlineArgs> TestCmdlineArgs() {
 
 /// TestCmdlineArgs() above needs to be valid...
 TEST(CmdlineTest, TestCmdlineArgs) { ASSERT_OK(TestCmdlineArgs().status()); }
+
+// Returns a valid command line for zngur mode (`--zng_out`), modified by `f`.
+absl::StatusOr<CmdlineArgs> TestZngCmdlineArgs(
+    const std::function<void(CmdlineArgs&)>& f) {
+  auto args = CmdlineArgs{
+      .current_target = BazelLabel("//:target"),
+      .crubit_support_path_format = "<crubit/support/path/{header}>",
+      .zng_out = "target.zng",
+      .zng_imports = {"//:dep=dep.zng"},
+      .zng_merges = {"extra.zng"},
+  };
+  args.public_headers.push_back(HeaderName("h1"));
+  CRUBIT_RETURN_IF_ERROR(internal::ParseTargetArgs(
+      R"([{"t": "//:target", "h": ["h1"]}])", args));
+  f(args);
+  CRUBIT_ASSIGN_OR_RETURN(Cmdline cmdline, Cmdline::Create(std::move(args)));
+  return std::move(cmdline).args();
+}
+
+TEST(CmdlineTest, ZngOutDoesNotNeedRsOutAndCcOut) {
+  ASSERT_OK_AND_ASSIGN(CmdlineArgs args,
+                       TestZngCmdlineArgs([](CmdlineArgs&) {}));
+  EXPECT_EQ(args.zng_out, "target.zng");
+  EXPECT_THAT(args.zng_imports, ElementsAre("//:dep=dep.zng"));
+  EXPECT_THAT(args.zng_merges, ElementsAre("extra.zng"));
+}
+
+TEST(CmdlineTest, ZngOutExcludesRsOut) {
+  EXPECT_THAT(TestZngCmdlineArgs([](CmdlineArgs& args) {
+                args.rs_out = "rs_out";
+              }),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("can't be used with --zng_out")));
+}
+
+TEST(CmdlineTest, ZngImportNeedsTargetAndPath) {
+  EXPECT_THAT(TestZngCmdlineArgs([](CmdlineArgs& args) {
+                args.zng_imports = {"dep.zng"};
+              }),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("--zng_import expects `target=path`")));
+}
+
+TEST(CmdlineTest, ZngImportNeedsZngOut) {
+  EXPECT_THAT(TestZngCmdlineArgs([](CmdlineArgs& args) {
+                args.zng_out = "";
+                args.rs_out = "rs_out";
+                args.cc_out = "cc_out";
+              }),
+              StatusIs(absl::StatusCode::kInvalidArgument,
+                       HasSubstr("can only be used with --zng_out")));
+}
 
 TEST(CmdlineTest, BasicCorrectInput) {
   absl::SetFlag(&FLAGS_do_nothing, false);

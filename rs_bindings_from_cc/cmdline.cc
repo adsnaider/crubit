@@ -38,6 +38,22 @@ ABSL_FLAG(std::string, rs_out, "",
           "output path for the Rust source file with bindings");
 ABSL_FLAG(std::string, cc_out, "",
           "output path for the C++ source file with bindings implementation");
+ABSL_FLAG(
+    std::string, zng_out, "",
+    "(optional) output path for a zngur (https://github.com/HKalbasi/zngur) "
+    "`.zng` file that describes the target's API, from which zngur "
+    "generates the Rust bindings. With this flag, crubit only writes the "
+    "`.zng` file, and --rs_out and --cc_out must not be given.");
+ABSL_FLAG(std::string, zng_crate_name, "",
+          "(optional, with --zng_out) the Rust crate of the zngur bindings "
+          "(`#crate`). Defaults to the target's crate name.");
+ABSL_FLAG(std::vector<std::string>, zng_import, std::vector<std::string>(),
+          "(with --zng_out) comma-separated `target=path` pairs: the `.zng` "
+          "files of dependency targets, which the `.zng` file imports to refer "
+          "to their types.");
+ABSL_FLAG(std::vector<std::string>, zng_merge, std::vector<std::string>(),
+          "(with --zng_out) comma-separated hand-written `.zng` files that the "
+          "`.zng` file merges, to amend the generated API.");
 ABSL_FLAG(std::string, ir_out, "",
           "(optional) output path for the textproto IR. If not present, the "
           "textproto IR will not be dumped.");
@@ -298,6 +314,10 @@ absl::StatusOr<Cmdline> Cmdline::FromFlags() {
       .do_not_bind_allowlist = absl::GetFlag(FLAGS_do_not_bind_allowlist),
       .template_blocklist_path_regex =
           absl::GetFlag(FLAGS_template_blocklist_path_regex),
+      .zng_out = absl::GetFlag(FLAGS_zng_out),
+      .zng_crate_name = absl::GetFlag(FLAGS_zng_crate_name),
+      .zng_imports = absl::GetFlag(FLAGS_zng_import),
+      .zng_merges = absl::GetFlag(FLAGS_zng_merge),
       .carcinize_mode = absl::GetFlag(FLAGS_carcinize),
   };
 
@@ -318,11 +338,31 @@ absl::StatusOr<Cmdline> Cmdline::Create(CmdlineArgs args) {
   if (args.current_target.empty()) {
     absl::StrAppend(&error, "please specify --target\n");
   }
-  if (args.rs_out.empty()) {
-    absl::StrAppend(&error, "please specify --rs_out\n");
+  if (!args.zng_out.empty()) {
+    if (!args.rs_out.empty() || !args.cc_out.empty()) {
+      absl::StrAppend(
+          &error,
+          "--rs_out and --cc_out can't be used with --zng_out, which "
+          "only generates a `.zng` file\n");
+    }
+  } else {
+    if (args.rs_out.empty()) {
+      absl::StrAppend(&error, "please specify --rs_out\n");
+    }
+    if (args.cc_out.empty()) {
+      absl::StrAppend(&error, "please specify --cc_out\n");
+    }
+    if (!args.zng_imports.empty() || !args.zng_merges.empty()) {
+      absl::StrAppend(&error,
+                      "--zng_import and --zng_merge can only be used with "
+                      "--zng_out\n");
+    }
   }
-  if (args.cc_out.empty()) {
-    absl::StrAppend(&error, "please specify --cc_out\n");
+  for (const std::string& import : args.zng_imports) {
+    if (!absl::StrContains(import, "=")) {
+      absl::StrAppend(&error, "--zng_import expects `target=path`, got `",
+                      import, "`\n");
+    }
   }
   if (args.public_headers.empty()) {
     absl::StrAppend(&error, "please specify --public_headers\n");

@@ -77,20 +77,26 @@ absl::Status Main(absl::Span<char* const> positional_args) {
     CRUBIT_RETURN_IF_ERROR(SetFileContents(args.ir_out, textproto));
   }
 
-  std::string extra_cpp_srcs_content;
-  for (const std::string& cc_src : args.extra_cpp_srcs) {
-    CRUBIT_ASSIGN_OR_RETURN(std::string cc_src_content,
-                            GetFileContents(cc_src));
-    absl::StrAppend(&extra_cpp_srcs_content, "\n#line 1 \"", cc_src, "\"\n",
-                    cc_src_content, "\n");
-  }
-  bindings_and_metadata.rs_api_impl =
-      absl::StrCat(extra_cpp_srcs_content, bindings_and_metadata.rs_api_impl);
+  // zngur mode: only the `.zng` file (and the optional metadata below).
+  if (!args.zng_out.empty()) {
+    CRUBIT_RETURN_IF_ERROR(
+        SetFileContents(args.zng_out, bindings_and_metadata.zng));
+  } else {
+    std::string extra_cpp_srcs_content;
+    for (const std::string& cc_src : args.extra_cpp_srcs) {
+      CRUBIT_ASSIGN_OR_RETURN(std::string cc_src_content,
+                              GetFileContents(cc_src));
+      absl::StrAppend(&extra_cpp_srcs_content, "\n#line 1 \"", cc_src, "\"\n",
+                      cc_src_content, "\n");
+    }
+    bindings_and_metadata.rs_api_impl =
+        absl::StrCat(extra_cpp_srcs_content, bindings_and_metadata.rs_api_impl);
 
-  CRUBIT_RETURN_IF_ERROR(
-      SetFileContents(args.rs_out, bindings_and_metadata.rs_api));
-  CRUBIT_RETURN_IF_ERROR(
-      SetFileContents(args.cc_out, bindings_and_metadata.rs_api_impl));
+    CRUBIT_RETURN_IF_ERROR(
+        SetFileContents(args.rs_out, bindings_and_metadata.rs_api));
+    CRUBIT_RETURN_IF_ERROR(
+        SetFileContents(args.cc_out, bindings_and_metadata.rs_api_impl));
+  }
 
   if (!args.instantiations_out.empty()) {
     CRUBIT_RETURN_IF_ERROR(SetFileContents(

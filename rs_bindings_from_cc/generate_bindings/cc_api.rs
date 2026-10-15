@@ -55,6 +55,40 @@ pub fn generate_bindings(
     let is_golden_test = request_view.is_golden_test();
     let kythe_annotations = request_view.kythe_annotations();
 
+    // zngur mode: write a `.zng` file instead of the bindings.
+    if request_view.has_zng_options() {
+        let zng = request_view.zng_options();
+        fn to_string(s: &protobuf::ProtoStr) -> String {
+            s.to_str().expect("zng options must be UTF-8").to_string()
+        }
+        let zng_out = std::path::PathBuf::from(to_string(zng.zng_out()));
+        let zng_dir = zng_out.parent().unwrap_or(std::path::Path::new("")).to_path_buf();
+        let relative = |path: &str| {
+            generate_zng::zng_relative_path(&zng_dir, std::path::Path::new(path))
+                .expect("failed to compute a relative path")
+        };
+        let options = generate_zng::ZngOptions {
+            crate_name: to_string(zng.crate_name()),
+            imports: zng
+                .imports()
+                .iter()
+                .map(|import| generate_zng::ZngImport {
+                    target: to_string(import.target()),
+                    zng_file: to_string(import.zng_file()).into(),
+                    import_path: relative(&to_string(import.zng_file())),
+                })
+                .collect(),
+            merges: zng.merges().iter().map(|merge| relative(&to_string(merge))).collect(),
+            is_golden_test,
+        };
+        catch_unwind(AssertUnwindSafe(|| match generate_zng::generate_zng(&ir, &options) {
+            Ok(zng) => response.set_zng(zng),
+            Err(err) => response.set_fatal_errors(format!("{err:#}")),
+        }))
+        .unwrap_or_else(|_| process::abort());
+        return;
+    }
+
     // The `ir::IR` tree from the outer scope is not unwind safe. However, since we abort on
     // panic anyways, it is safe to bypass this check.
     catch_unwind(AssertUnwindSafe(|| {

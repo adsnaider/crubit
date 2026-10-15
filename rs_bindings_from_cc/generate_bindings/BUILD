@@ -67,12 +67,30 @@ rust_library(
     deps = [
         ":generate_bindings",
         ":generate_bindings_rust_proto",
+        ":generate_zng",
         "//common:arc_anyhow",
         "//common:error_report",
         "//rs_bindings_from_cc:ir",
         "//rs_bindings_from_cc:ir_rust_proto",
         "//rs_bindings_from_cc/generate_bindings/database",
         "@protobuf//rust:protobuf",
+    ],
+)
+
+rust_library(
+    name = "generate_zng",
+    srcs = ["generate_zng.rs"],
+    edition = "2024",
+    visibility = [
+        "//cargo:__subpackages__",
+        "//rs_bindings_from_cc:__subpackages__",
+    ],
+    deps = [
+        "//common:arc_anyhow",
+        "//rs_bindings_from_cc:ir",
+        "@crate_index//:quote",  # v1
+        "@crate_index//:zngur-def",
+        "@crate_index//:zngur-parser",
     ],
 )
 

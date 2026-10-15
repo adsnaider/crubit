@@ -62,6 +62,17 @@ struct CmdlineArgs {
   std::optional<std::vector<std::string>> do_not_bind_allowlist;
 
   std::string template_blocklist_path_regex;
+
+  // zngur mode (`--zng_out`): crubit writes a zngur `.zng` file instead of
+  // `rs_out` and `cc_out`.
+  std::string zng_out;
+  // The Rust crate of the zngur bindings (`#crate`). Defaults to the target's
+  // crate name.
+  std::string zng_crate_name;
+  // `target=path` pairs: the `.zng` files of dependency targets.
+  std::vector<std::string> zng_imports;
+  // Hand-written `.zng` files that the generated file merges.
+  std::vector<std::string> zng_merges;
   CarcinizeMode carcinize_mode = CarcinizeMode::kOff;
 };
 

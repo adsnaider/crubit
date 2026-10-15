@@ -6,9 +6,11 @@
 
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
 #include "rs_bindings_from_cc/generate_bindings/generate_bindings.pb.h"
 #include "rs_bindings_from_cc/ir.h"
@@ -53,6 +55,33 @@ absl::StatusOr<Bindings> GenerateBindings(
   bindings.rs_api_impl = response.rs_api_impl();
   bindings.error_report = response.error_report();
   return bindings;
+}
+
+absl::StatusOr<std::string> GenerateZng(IR ir, const ZngOptions& options,
+                                        bool is_golden_test) {
+  GenerateBindingsRequest request;
+  *request.mutable_ir_proto() = std::move(ir);
+  request.set_is_golden_test(is_golden_test);
+  auto* zng_options = request.mutable_zng_options();
+  zng_options->set_zng_out(options.zng_out);
+  zng_options->set_crate_name(options.crate_name);
+  for (const std::string& import : options.imports) {
+    std::pair<std::string, std::string> target_and_path =
+        absl::StrSplit(import, absl::MaxSplits('=', 1));
+    auto* zng_import = zng_options->add_imports();
+    zng_import->set_target(target_and_path.first);
+    zng_import->set_zng_file(target_and_path.second);
+  }
+  for (const std::string& merge : options.merges) {
+    zng_options->add_merges(merge);
+  }
+
+  GenerateBindingsResponse response =
+      GenerateBindingsProtoCall(std::move(request));
+  if (!response.fatal_errors().empty()) {
+    return absl::InvalidArgumentError(response.fatal_errors());
+  }
+  return response.zng();
 }
 
 }  // namespace crubit

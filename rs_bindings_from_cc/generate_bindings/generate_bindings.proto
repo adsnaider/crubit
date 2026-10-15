@@ -32,6 +32,29 @@ message GenerateBindingsRequest {
   bool is_golden_test = 8;
   bool kythe_annotations = 9;
   string kythe_default_corpus = 10;
+  // If set, the generator writes a zngur `.zng` file (`zng` in the response)
+  // instead of the bindings.
+  ZngOptions zng_options = 11;
+}
+
+// Options of the zngur `.zng` file (see `generate_zng.rs`).
+message ZngOptions {
+  // The output path of the `.zng` file, which the paths of imports and merges
+  // are written relative to.
+  string zng_out = 1;
+  // The Rust crate of the zngur bindings. Defaults to the target's crate name.
+  string crate_name = 2;
+  // The `.zng` files of dependency targets.
+  repeated ZngImport imports = 3;
+  // Hand-written `.zng` files that the generated file merges.
+  repeated string merges = 4;
+}
+
+message ZngImport {
+  // The dependency target, e.g. `//foo:bar`.
+  string target = 1;
+  // The path of its `.zng` file.
+  string zng_file = 2;
 }
 
 // Encapsulates the successful or failed output of binding generation.
@@ -45,4 +68,6 @@ message GenerateBindingsResponse {
   // If this string is not empty, generation has failed and other fields in
   // this message should be ignored.
   string fatal_errors = 4;
+  // The `.zng` file, if `zng_options` was set in the request.
+  string zng = 5;
 }

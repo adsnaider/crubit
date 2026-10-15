@@ -32,6 +32,9 @@ struct BindingsAndMetadata {
   absl::flat_hash_map<Identifier, Identifier> instantiations;
   // A JSON error report, if requested.
   std::string error_report;
+  // The zngur `.zng` file, in zngur mode (`--zng_out`), instead of `rs_api` and
+  // `rs_api_impl`.
+  std::string zng;
 };
 
 // Returns `BindingsAndMetadata` as requested by the user on the command line.
