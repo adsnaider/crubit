@@ -12,6 +12,8 @@ members = [
   "support/crubit_hash_rust",
   "support/crubit_annotate",
   "support/crubit_support",
+  "support/zngur/bazel_deps",
+  "support/zngur/cli",
 ]
 exclude = [
   "cargo/cc_bindings_from_rs/cargo-cpp_api_from_rust/tests/test_project",
@@ -53,6 +55,13 @@ ra_ap_rustc_lexer = "0.165.0"
 tempfile = "3"
 tracing = "0.1"
 unicode-ident = "1"
+
+# zngur (https://github.com/HKalbasi/zngur): crubit can emit zngur `.zng` files instead of its own
+# bindings, and zngur generates the bindings from them.
+# TODO: Depend on a zngur release once the C++-to-Rust support is upstream.
+zngur-def = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "f5ab523d1dc1557ad67103530fe106ebb69dda91", features = ["printing"] }
+zngur = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "f5ab523d1dc1557ad67103530fe106ebb69dda91" }
+zngur-lib = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "f5ab523d1dc1557ad67103530fe106ebb69dda91" }
 
 [workspace.package]
 

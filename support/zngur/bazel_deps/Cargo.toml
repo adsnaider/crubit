@@ -1,0 +1,22 @@
+# Part of the Crubit project, under the Apache License v2.0 with LLVM
+# Exceptions. See /LICENSE for license information.
+# SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+# Bazel-only dependencies of crubit's zngur support: Bazel builds `zngur-lib` (the runtime of the
+# Rust code that zngur generates) through crate_universe, which only sees the dependencies of
+# workspace members.
+
+[package]
+name = "crubit_zngur_bazel_deps"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+license-file.workspace = true
+repository.workspace = true
+categories.workspace = true
+
+[lib]
+path = "lib.rs"
+
+[dependencies]
+zngur-lib.workspace = true
