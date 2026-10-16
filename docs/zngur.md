@@ -226,12 +226,11 @@ zngur's own gaps (lifetimes on `CppRef`, method-call syntax, inheritance, C++
 enums, ...) are listed on the "Future work" page of the zngur book.
 
 -   **Layouts are target-specific.** crubit writes the layouts of the target it
-    runs for, and zngur checks them when the bindings compile. `cpp_std.zng`
-    hard-codes the 64-bit layout of `std::unique_ptr`. That could use zngur's
-    (unstable) conditional compilation on the target's `cfg`s (like
-    `target_pointer_width`), if the zngur rule passes them to zngur. Or crubit
-    could generate the template's home for the target triple, like the
-    instantiations.
+    runs for, and zngur checks them when the bindings compile. Hand-written
+    `.zng` files, like `cpp_std.zng`, can pick layouts with zngur's (unstable)
+    conditional compilation: `zngur_library` gives zngur the target's Rust
+    `cfg`s (from `rustc --print cfg`), so `#if cfg!(target_pointer_width."64")`
+    works.
 -   **Generic Rust types** like `Option<T>` and `Vec<T>` aren't described yet.
     Today they can be added by hand, with `extra_zng`.
 -   C++ enums, templates and operators aren't described yet.

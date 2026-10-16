@@ -71,10 +71,16 @@ def _zngur_generate_impl(ctx):
     args.add("--cpp-file", cpp_file)
     args.add("--crate-name", ctx.attr.crate_name)
     args.add("--mangling-base", ctx.attr.crate_name)
+
+    # The target's Rust `cfg`s, for conditional compilation in `.zng` files (`#if cfg!(...)`).
+    rust_toolchain = ctx.toolchains["@rules_rust//rust:toolchain_type"]
+    args.add("--rustc", rust_toolchain.rustc)
+    args.add("--target", rust_toolchain.target_flag_value)
     ctx.actions.run(
         executable = ctx.executable._zngur,
         arguments = [args],
-        inputs = transitive_files,
+        inputs = depset(transitive = [transitive_files, rust_toolchain.rustc_lib]),
+        tools = [rust_toolchain.rustc],
         outputs = [h_file, rs_file, cpp_file],
         mnemonic = "Zngur",
         progress_message = "Generating zngur bindings from %{input}",
@@ -142,6 +148,7 @@ _zngur_generate = rule(
             cfg = "exec",
         ),
     },
+    toolchains = ["@rules_rust//rust:toolchain_type"],
 )
 
 def _zngur_library_impl(ctx):

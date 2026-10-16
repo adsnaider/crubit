@@ -42,7 +42,6 @@ cc_library(
 )
 
 # The home of the C++ standard library templates in the `.zng` files of `zng_from_cc`.
-# The layouts in cpp_std.zng are those of 64-bit targets.
 zngur_library(
     name = "cpp_std",
     crate_name = "crubit_zngur_cpp_std",

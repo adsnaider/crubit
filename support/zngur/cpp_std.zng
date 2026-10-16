@@ -2,6 +2,7 @@
 // `zng_from_cc`): the modules that instantiate them import this file.
 
 #crate crubit_zngur_cpp_std
+#unstable(cfg_if)
 
 #cpp_additional_includes "
 #include <memory>
@@ -9,7 +10,12 @@
 
 // `std::unique_ptr<T>`, with the default deleter: instantiations are declared next to `T`.
 type<T> c++::std::unique_ptr<T> {
-    #layout(size = 8, align = 8);
+    // A pointer. `zngur_library` gives zngur the target's Rust `cfg`s.
+    #if cfg!(target_pointer_width."64") {
+        #layout(size = 8, align = 8);
+    } #else {
+        #layout(size = 4, align = 4);
+    }
     #trivially_relocatable;
 
     safe fn get() const -> T*;
