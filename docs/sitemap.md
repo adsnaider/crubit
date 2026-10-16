@@ -20,6 +20,8 @@
         *   [Advanced Introduction](/docs/types/non_rust_movable/intro_advanced.md)
         *   [Cheat Sheet](/docs/types/non_rust_movable/cheat_sheet.md)
 
+*   [Bindings through zngur](/docs/zngur.md)
+
 *   [Errors](/docs/errors/)
 
 *   Rust Bindings for C++ Libraries
