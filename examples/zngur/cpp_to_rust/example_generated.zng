@@ -1,0 +1,60 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following C++ target:
+// //examples/zngur/cpp_to_rust:example_lib
+
+import "../../../support/zngur/cpp_std.zng";
+import "./point_lib_zngur.zng";
+
+#crate example_lib_zngur
+
+#cpp_additional_includes r#"
+#include "examples/zngur/cpp_to_rust/example.h"
+"#
+
+type c++::shapes::Rect {
+    #layout(size = 16, align = 4);
+    #unsafe(trivially_relocatable);
+
+    field const min (type = c++::geometry::Point);
+    field min (type = c++::geometry::Point) as min_mut;
+    field const max (type = c++::geometry::Point);
+    field max (type = c++::geometry::Point) as max_mut;
+
+    unsafe constructor(const c++::shapes::Rect&);
+    unsafe constructor(const c++::geometry::Point&, const c++::geometry::Point&);
+
+    unsafe fn Area() const -> i32;
+    unsafe fn Translate(i32, i32);
+}
+
+type c++::shapes::Canvas {
+    #layout(size = 16, align = 8);
+
+    unsafe fn Draw(const c++::shapes::Rect&);
+    unsafe fn TotalArea() const -> i32;
+}
+
+type c++::std::unique_ptr<c++::shapes::Rect> {
+    #layout(size = 8, align = 8);
+    #trivially_relocatable;
+
+    unsafe fn get() const -> c++::shapes::Rect*;
+}
+
+type c++::std::unique_ptr<c++::shapes::Canvas> {
+    #layout(size = 8, align = 8);
+    #trivially_relocatable;
+
+    unsafe fn get() const -> c++::shapes::Canvas*;
+}
+
+mod c++::shapes {
+    safe fn MakeSquare(i32) -> c++::std::unique_ptr<c++::shapes::Rect>;
+    safe fn MakeCanvas() -> c++::std::unique_ptr<c++::shapes::Canvas>;
+}
+
+// Hand-written additions.
+merge "./example_extra.zng";

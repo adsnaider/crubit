@@ -1,0 +1,6 @@
+// Hand-written additions to the generated `.zng` file (`extra_zng`), which the
+// generated file merges: here, a snake_case name for `Rect::Area`.
+
+type c++::shapes::Rect {
+    unsafe fn Area() const -> i32 as area;
+}

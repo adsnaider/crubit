@@ -1,0 +1,35 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following Rust crate:
+// example
+//
+// Items that are not (yet) supported in this file:
+// skipped: ::example::Rect::aspect_ratio: generic type `std::option::Option<i32>` is not supported yet
+
+import "./point_zngur.zng";
+
+type ::example::Canvas {
+    #layout(size = 24, align = 8);
+    wellknown_traits(Debug);
+
+    fn draw(&mut self, ::example::Rect);
+    fn total_area(&self) -> i32;
+    fn default() -> ::example::Canvas use ::core::default::Default;
+}
+
+type ::example::Rect {
+    #layout(size = 16, align = 4);
+    wellknown_traits(Copy, Debug);
+
+    field min (offset = 0, type = ::point::Point);
+    field max (offset = 8, type = ::point::Point);
+
+    fn new(::point::Point, ::point::Point) -> ::example::Rect as new_;
+    fn area(&self) -> i32;
+    fn translate(&mut self, i32, i32);
+}
+
+// Hand-written additions.
+merge "./example_extra.zng";

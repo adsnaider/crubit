@@ -18,3 +18,6 @@ In every case, examples have the following files:
     copies of what Crubit generates are kept in sync using a golden test
     framework, but ordinarily, you will use the C++ header / Rust module that
     Crubit generates on the fly, dynamically.)
+
+`examples/zngur/` shows crubit as a front end for zngur, in both directions: see
+its [README](zngur/README.md).
