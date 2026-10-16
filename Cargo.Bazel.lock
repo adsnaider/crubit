@@ -1,5 +1,5 @@
 {
-  "checksum": "3b956616640ecf6f76890c640b0291e7f191582ad048610b8eb8abb6df7dda86",
+  "checksum": "b82eb1e7d34bdc80b1853afe2a81d4b59bff6c8b6866cb184aa21981d2c2c32f",
   "crates": {
     "aho-corasick 1.1.5": {
       "name": "aho-corasick",
@@ -9686,6 +9686,54 @@
       "license_ids": [],
       "license_file": "../../../../LICENSE"
     },
+    "rs_bindings_from_cc_generate_zng 0.0.0": {
+      "name": "rs_bindings_from_cc_generate_zng",
+      "version": "0.0.0",
+      "package_url": "https://github.com/google/crubit",
+      "repository": null,
+      "targets": [
+        {
+          "Library": {
+            "crate_name": "generate_zng",
+            "crate_root": "../../../../rs_bindings_from_cc/generate_bindings/generate_zng.rs",
+            "srcs": {
+              "allow_empty": true,
+              "include": [
+                "**/*.rs"
+              ]
+            }
+          }
+        }
+      ],
+      "library_target_name": "generate_zng",
+      "common_attrs": {
+        "compile_data_glob": [
+          "**"
+        ],
+        "deps": {
+          "common": [
+            {
+              "id": "quote 1.0.47",
+              "target": "quote"
+            },
+            {
+              "id": "zngur-def 0.11.0",
+              "target": "zngur_def"
+            },
+            {
+              "id": "zngur-parser 0.11.0",
+              "target": "zngur_parser"
+            }
+          ],
+          "selects": {}
+        },
+        "edition": "2024",
+        "version": "0.0.0"
+      },
+      "license": null,
+      "license_ids": [],
+      "license_file": "../../../../LICENSE"
+    },
     "rs_bindings_from_cc_has_bindings 0.0.0": {
       "name": "rs_bindings_from_cc_has_bindings",
       "version": "0.0.0",
@@ -13239,7 +13287,7 @@
         "Git": {
           "remote": "file:///usr/local/google/home/asnaider/repos/zngur",
           "commitish": {
-            "Rev": "f5ab523d1dc1557ad67103530fe106ebb69dda91"
+            "Rev": "072db120c4177f79d3ce500a86314fb4afe02cd9"
           },
           "strip_prefix": "zngur"
         }
@@ -13290,7 +13338,7 @@
         "Git": {
           "remote": "file:///usr/local/google/home/asnaider/repos/zngur",
           "commitish": {
-            "Rev": "f5ab523d1dc1557ad67103530fe106ebb69dda91"
+            "Rev": "072db120c4177f79d3ce500a86314fb4afe02cd9"
           },
           "strip_prefix": "zngur-def"
         }
@@ -13351,7 +13399,7 @@
         "Git": {
           "remote": "file:///usr/local/google/home/asnaider/repos/zngur",
           "commitish": {
-            "Rev": "f5ab523d1dc1557ad67103530fe106ebb69dda91"
+            "Rev": "072db120c4177f79d3ce500a86314fb4afe02cd9"
           },
           "strip_prefix": "zngur-generator"
         }
@@ -13426,7 +13474,7 @@
         "Git": {
           "remote": "file:///usr/local/google/home/asnaider/repos/zngur",
           "commitish": {
-            "Rev": "f5ab523d1dc1557ad67103530fe106ebb69dda91"
+            "Rev": "072db120c4177f79d3ce500a86314fb4afe02cd9"
           },
           "strip_prefix": "zngur-lib"
         }
@@ -13468,7 +13516,7 @@
         "Git": {
           "remote": "file:///usr/local/google/home/asnaider/repos/zngur",
           "commitish": {
-            "Rev": "f5ab523d1dc1557ad67103530fe106ebb69dda91"
+            "Rev": "072db120c4177f79d3ce500a86314fb4afe02cd9"
           },
           "strip_prefix": "zngur-parser"
         }
@@ -13611,6 +13659,7 @@
     "rs_bindings_from_cc_generate_function 0.0.0": "cargo/rs_bindings_from_cc/generate_bindings/generate_function",
     "rs_bindings_from_cc_generate_function_thunk 0.0.0": "cargo/rs_bindings_from_cc/generate_bindings/generate_function_thunk",
     "rs_bindings_from_cc_generate_struct_and_union 0.0.0": "cargo/rs_bindings_from_cc/generate_bindings/generate_struct_and_union",
+    "rs_bindings_from_cc_generate_zng 0.0.0": "cargo/rs_bindings_from_cc/generate_bindings/generate_zng",
     "rs_bindings_from_cc_has_bindings 0.0.0": "cargo/rs_bindings_from_cc/generate_bindings/has_bindings",
     "rs_bindings_from_cc_impl_sys 0.0.0": "cargo/rs_bindings_from_cc/rs_bindings_from_cc_impl_sys",
     "rs_bindings_from_cc_importer_sys 0.0.0": "cargo/rs_bindings_from_cc/importer_sys",

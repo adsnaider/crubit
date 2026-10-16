@@ -1,0 +1,16 @@
+// The home of the C++ standard library templates that crubit's `.zng` files use (see
+// `zng_from_cc`): the modules that instantiate them import this file.
+
+#crate crubit_zngur_cpp_std
+
+#cpp_additional_includes "
+#include <memory>
+"
+
+// `std::unique_ptr<T>`, with the default deleter: instantiations are declared next to `T`.
+type<T> c++::std::unique_ptr<T> {
+    #layout(size = 8, align = 8);
+    #trivially_relocatable;
+
+    unsafe fn get() const -> T*;
+}

@@ -1,0 +1,6 @@
+// Hand-written additions to the generated `.zng` file of `shapes` (`extra_zng`): a second Rust
+// name for `Segment::Length2`.
+
+type c++::shapes::Segment {
+    unsafe fn Length2() const -> i32 as length_squared;
+}

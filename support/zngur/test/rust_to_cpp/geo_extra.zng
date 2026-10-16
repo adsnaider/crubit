@@ -1,0 +1,19 @@
+// Hand-written additions to the generated `.zng` file of `geo` (`extra_zng`): `checked_div`, which
+// returns a generic type (`Option<i32>`) that crubit doesn't describe yet.
+
+type bool {
+    #layout(size = 1, align = 1);
+    wellknown_traits(Copy);
+}
+
+type ::core::option::Option<i32> {
+    #layout(size = 8, align = 4);
+    wellknown_traits(Copy);
+
+    fn is_some(&self) -> bool;
+    fn unwrap(self) -> i32;
+}
+
+mod ::geo {
+    fn checked_div(i32, i32) -> ::core::option::Option<i32>;
+}
