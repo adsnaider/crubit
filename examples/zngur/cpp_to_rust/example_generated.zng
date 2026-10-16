@@ -44,16 +44,8 @@ type c++::std::unique_ptr<c++::shapes::Rect> {
     safe fn get() const -> c++::shapes::Rect*;
 }
 
-type c++::std::unique_ptr<c++::shapes::Canvas> {
-    #layout(size = 8, align = 8);
-    #trivially_relocatable;
-
-    safe fn get() const -> c++::shapes::Canvas*;
-}
-
 mod c++::shapes {
     safe fn MakeSquare(i32) -> c++::std::unique_ptr<c++::shapes::Rect>;
-    safe fn MakeCanvas() -> c++::std::unique_ptr<c++::shapes::Canvas>;
 }
 
 // Hand-written additions.

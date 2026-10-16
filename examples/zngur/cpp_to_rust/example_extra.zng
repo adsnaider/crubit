@@ -1,6 +1,16 @@
 // Hand-written additions to the generated `.zng` file (`extra_zng`), which the
-// generated file merges: here, a snake_case name for `Rect::Area`.
+// generated file merges.
 
+// A snake_case name for `Rect::Area`.
 type c++::shapes::Rect {
     safe fn Area() const -> i32 as area;
+}
+
+// `std::make_unique<Canvas>()`, for Rust to create a `Canvas`, which it can only
+// refer to, on the heap. The instantiation `std::unique_ptr<Canvas>` gets its
+// layout and `get()` from `cpp_std.zng`.
+type c++::std::unique_ptr<c++::shapes::Canvas> {}
+
+mod c++::std {
+    safe fn make_unique<c++::shapes::Canvas>() -> c++::std::unique_ptr<c++::shapes::Canvas> as make_canvas;
 }

@@ -6,7 +6,8 @@
 //! `.zng` file.
 
 use crubit_zngur_cpp_std::std::unique_ptr;
-use example_lib_zngur::shapes::{Canvas, MakeCanvas, MakeSquare, Rect};
+use example_lib_zngur::shapes::{Canvas, MakeSquare, Rect};
+use example_lib_zngur::std::make_canvas;
 use point_lib_zngur::geometry::Point;
 use zngur_lib::ZngCppConstruct;
 
@@ -26,7 +27,8 @@ fn main() {
 
     // `std::unique_ptr` is held by value too, and `get()` gives a C++ pointer to the object.
     let square = MakeSquare(3);
-    let canvas = MakeCanvas();
+    // From `example_extra.zng`: `std::make_unique<Canvas>()`.
+    let canvas = make_canvas();
     // SAFETY: Each `unique_ptr` owns an object, which lives as long as it does.
     let (square, canvas) = unsafe {
         (

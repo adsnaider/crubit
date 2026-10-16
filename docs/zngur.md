@@ -164,6 +164,27 @@ There are two ways:
 
 Files that a `.zng` file merges must be in the same package.
 
+### Example: creating objects with `std::make_unique`
+
+Rust can't construct C++ objects that it can only refer to (types that can't be
+moved with `memcpy`), because it can't hold them by value. It can own them on
+the heap, though, through a `std::unique_ptr`. zngur can call instantiations of
+function templates, so an `extra_zng` file can declare `std::make_unique` for
+the type:
+
+```zng
+// The instantiation gets its layout and `get()` from `cpp_std.zng`.
+type c++::std::unique_ptr<c++::shapes::Canvas> {}
+
+mod c++::std {
+    safe fn make_unique<c++::shapes::Canvas>() -> c++::std::unique_ptr<c++::shapes::Canvas> as make_canvas;
+}
+```
+
+The parameters are those of the constructor to call. In Rust,
+`<crate>::std::make_canvas()` returns the `std::unique_ptr<Canvas>`, which
+destroys the object when it's dropped. `examples/zngur/cpp_to_rust` does this.
+
 ## What crubit describes
 
 ### Rust crates

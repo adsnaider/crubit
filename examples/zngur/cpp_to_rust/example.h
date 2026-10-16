@@ -29,8 +29,9 @@ struct Rect {
   geometry::Point max;
 };
 
-// Rust only refers to it, through pointers: it has a destructor and virtual
-// functions, so it can't be moved with `memcpy`.
+// Rust only refers to it: it has a destructor and virtual functions, so it
+// can't be moved with `memcpy`. Rust creates one with `std::make_unique` (see
+// `example_extra.zng`).
 class Canvas {
  public:
   virtual ~Canvas() = default;
@@ -43,10 +44,6 @@ class Canvas {
 
 inline std::unique_ptr<Rect> MakeSquare(int32_t side) {
   return std::make_unique<Rect>(geometry::Point(), geometry::Point(side, side));
-}
-
-inline std::unique_ptr<Canvas> MakeCanvas() {
-  return std::make_unique<Canvas>();
 }
 
 }  // namespace shapes
