@@ -1,0 +1,24 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following Rust crate:
+// uses_structs
+
+import "./structs_zngur.zng";
+
+type ::uses_structs::Line {
+    #layout(size = 16, align = 4);
+    wellknown_traits(Copy, Debug);
+
+    field from (offset = 0, type = ::structs::Point);
+    field to (offset = 8, type = ::structs::Point);
+
+    fn new(::structs::Point, ::structs::Point) -> ::uses_structs::Line as new_;
+    fn length2(&self) -> i32;
+}
+
+mod ::uses_structs {
+    fn origin() -> ::structs::Point;
+    fn x_of(&::structs::Point) -> i32;
+}

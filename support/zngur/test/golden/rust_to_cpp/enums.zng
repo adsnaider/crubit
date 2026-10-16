@@ -1,0 +1,24 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following Rust crate:
+// enums
+
+type ::enums::Color {
+    #layout(size = 1, align = 1);
+    wellknown_traits(Copy, Debug);
+
+    fn default() -> ::enums::Color use ::core::default::Default;
+}
+
+type ::enums::Shape {
+    #layout(size = 24, align = 8);
+
+    fn circle(f64) -> ::enums::Shape;
+    fn area(&self) -> f64;
+}
+
+mod ::enums {
+    fn favorite() -> ::enums::Color;
+}

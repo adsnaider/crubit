@@ -38,6 +38,8 @@ def _zng_from_rust_impl(ctx):
     args.add("--source-crate-name", crate_info.name)
     args.add("--extern={}={}".format(crate_info.name, rmeta.path))
     args.add("--enable-rmeta-interface")
+    if ctx.attr.is_golden_test:
+        args.add("--is-golden-test")
 
     # The arguments for rustc.
     args.add_all(rust_toolchain.rust_std_paths, before_each = "-L")
@@ -114,6 +116,10 @@ The `.zng` file goes to `zngur_library`, which builds the bindings for C++ to us
         ),
         "out": attr.string(
             doc = "The name of the `.zng` file. Defaults to `<name>.zng`.",
+        ),
+        "is_golden_test": attr.bool(
+            doc = "Whether to leave out information that varies between machines, for golden " +
+                  "tests.",
         ),
     },
     toolchains = [

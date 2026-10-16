@@ -1,0 +1,42 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following C++ target:
+// //support/zngur/test/golden/cpp_to_rust:user_of_records
+
+import "../../../cpp_std.zng";
+import "./records_zngur.zng";
+import "./unique_ptr_zngur.zng";
+
+#crate user_of_records_zngur
+
+#cpp_additional_includes r#"
+#include "support/zngur/test/golden/cpp_to_rust/user_of_records.h"
+"#
+
+type c++::user_of_records::Segment {
+    #layout(size = 16, align = 4);
+    #unsafe(trivially_relocatable);
+
+    field const from (type = c++::records::Point);
+    field from (type = c++::records::Point) as from_mut;
+    field const to (type = c++::records::Point);
+    field to (type = c++::records::Point) as to_mut;
+
+    safe constructor();
+    unsafe constructor(const c++::user_of_records::Segment&);
+}
+
+type c++::std::unique_ptr<c++::user_of_records::Segment> {
+    #layout(size = 8, align = 8);
+    #trivially_relocatable;
+
+    unsafe fn get() const -> c++::user_of_records::Segment*;
+}
+
+mod c++::user_of_records {
+    unsafe fn Midpoint(const c++::user_of_records::Segment&) -> c++::records::Point;
+    safe fn Wrap(i32) -> c++::std::unique_ptr<c++::unique_ptr::Widget>;
+    safe fn MakeSegment() -> c++::std::unique_ptr<c++::user_of_records::Segment>;
+}

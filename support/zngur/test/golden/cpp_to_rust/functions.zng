@@ -1,0 +1,38 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following C++ target:
+// //support/zngur/test/golden/cpp_to_rust:functions
+//
+// Items that are not (yet) supported in this file:
+// skipped: GlobalFunction: functions in the global namespace are not supported by zngur
+
+import "../../../cpp_std.zng";
+
+#crate functions_zngur
+
+#cpp_additional_includes r#"
+#include "support/zngur/test/golden/cpp_to_rust/functions.h"
+"#
+
+type bool {
+    #layout(size = 1, align = 1);
+    wellknown_traits(Copy);
+}
+
+mod c++::functions {
+    safe fn Add(i32, i32) -> i32;
+    safe fn Mix(f64, f32) -> f64;
+    safe fn IsPositive(i64) -> bool;
+    safe fn Low(u16) -> u8;
+    safe fn Count() -> usize;
+    safe fn Nothing();
+    safe fn Square(i64) -> i64;
+    unsafe fn Fill(i32*, i32);
+    unsafe fn Read(const i32&) -> i32;
+    unsafe fn Unchecked(i32) -> i32;
+}
+mod c++::functions::inner {
+    safe fn Twice(i32) -> i32;
+}

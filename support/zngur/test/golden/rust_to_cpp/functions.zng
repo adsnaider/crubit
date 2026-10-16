@@ -1,0 +1,39 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following Rust crate:
+// functions
+//
+// Items that are not (yet) supported in this file:
+// skipped: ::functions::count: `isize` is not supported by zngur
+
+type bool {
+    #layout(size = 1, align = 1);
+    wellknown_traits(Copy);
+}
+
+type char {
+    #layout(size = 4, align = 4);
+    wellknown_traits(Copy);
+}
+
+type str {
+    wellknown_traits(?Sized);
+
+    fn as_ptr(&self) -> *const u8;
+    fn len(&self) -> usize;
+}
+
+mod ::functions {
+    fn add(i32, i32) -> i32;
+    fn is_positive(i64) -> bool;
+    fn low(u16) -> u8;
+    fn mix(f64, f32) -> f64;
+    fn next_char(char) -> char;
+    fn nothing();
+    fn str_len(&str) -> usize;
+}
+mod ::functions::inner {
+    fn twice(i32) -> i32;
+}

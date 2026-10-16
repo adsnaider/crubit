@@ -1,0 +1,31 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following C++ target:
+// //support/zngur/test/golden/cpp_to_rust:non_movable
+
+import "../../../cpp_std.zng";
+
+#crate non_movable_zngur
+
+#cpp_additional_includes r#"
+#include "support/zngur/test/golden/cpp_to_rust/non_movable.h"
+"#
+
+type c++::non_movable::Shape {
+    #layout(size = 8, align = 8);
+
+    unsafe fn Area() const -> i32;
+}
+
+type c++::non_movable::Resource {
+    #layout(size = 4, align = 4);
+
+    unsafe fn Id() const -> i32;
+    safe static fn Create(i32) -> c++::non_movable::Resource*;
+}
+
+mod c++::non_movable {
+    unsafe fn AreaOf(const c++::non_movable::Shape&) -> i32;
+}

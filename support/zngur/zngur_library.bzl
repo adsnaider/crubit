@@ -150,7 +150,11 @@ def _zngur_library_impl(ctx):
         cc_infos = [ctx.attr.rust[CcInfo]],
     )
     return [
-        DefaultInfo(files = depset([ctx.attr.generated[ZngurInfo].header])),
+        # Building the target builds both sides.
+        DefaultInfo(files = depset(
+            [ctx.attr.generated[ZngurInfo].header],
+            transitive = [ctx.attr.glue[DefaultInfo].files, ctx.attr.rust[DefaultInfo].files],
+        )),
         cc_info,
         ctx.attr.generated[ZngurInfo],
     ]

@@ -1,0 +1,54 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following Rust crate:
+// structs
+
+type ::structs::Empty {
+    #layout(size = 0, align = 1);
+    wellknown_traits(Copy);
+
+    fn default() -> ::structs::Empty use ::core::default::Default;
+}
+
+type ::structs::Guard {
+    #layout(size = 4, align = 4);
+
+    fn new(i32) -> ::structs::Guard as new_;
+    fn value(&self) -> i32;
+}
+
+type ::structs::Named {
+    #layout(size = 32, align = 8);
+    wellknown_traits(Debug);
+
+    field id (offset = 24, type = u64);
+
+    fn name_len(&self) -> usize;
+    fn clone(&self) -> ::structs::Named use ::core::clone::Clone;
+    fn default() -> ::structs::Named use ::core::default::Default;
+}
+
+type ::structs::Pair {
+    #layout(size = 16, align = 8);
+    wellknown_traits(Copy);
+
+    field 0 (offset = 8, type = i32);
+    field 1 (offset = 0, type = f64);
+}
+
+type ::structs::Point {
+    #layout(size = 8, align = 4);
+    wellknown_traits(Copy, Debug);
+
+    field x (offset = 0, type = i32);
+    field y (offset = 4, type = i32);
+
+    fn new(i32, i32) -> ::structs::Point as new_;
+    fn norm2(&self) -> i32;
+    fn scale(&mut self, i32);
+    fn into_sum(self) -> i64;
+    fn x(&self) -> i32 as x_;
+    fn default() -> ::structs::Point use ::core::default::Default;
+}

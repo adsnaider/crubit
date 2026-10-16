@@ -112,6 +112,8 @@ def _zng_from_cc_impl(ctx):
     if srcs:
         args.add("--zng_merge=" + ",".join([src.path for src in srcs]))
     args.add("--crubit_support_path_format=\"support/{header}\"")
+    if ctx.attr.is_golden_test:
+        args.add("--is_golden_test")
     args.add("--")
     args.add_all(_compile_flags(ctx, cc_toolchain, compilation_context))
 
@@ -177,6 +179,10 @@ The module of the `.zng` file is the crate `crate_name`, which must be the `crat
         ),
         "out": attr.string(
             doc = "The name of the `.zng` file. Defaults to `<name>.zng`.",
+        ),
+        "is_golden_test": attr.bool(
+            doc = "Whether to leave out information that varies between machines, for golden " +
+                  "tests.",
         ),
         "_cpp_std": attr.label(
             default = Label("//support/zngur:cpp_std"),

@@ -126,6 +126,7 @@ pub fn generate_zng_spec(ir: &IR, options: &ZngOptions) -> Result<(ZngurSpec, Ve
             path: import.import_path.clone().into(),
             crate_name: None,
             cpp_types: vec![],
+            cpp_by_value_types: vec![],
             cpp_template_homes: vec![],
         });
     }
@@ -430,7 +431,18 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
 
         let mut constructor_inputs: Vec<Vec<RustType>> = vec![];
         for child in record.children() {
-            let Item::Func(func) = child else { continue };
+            let func = match child {
+                Item::Func(func) => func,
+                Item::Record(_)
+                | Item::Enum(_)
+                | Item::TypeAlias(_)
+                | Item::IncompleteRecord(_) => {
+                    let name = child.cc_name_as_str().unwrap_or("<unnamed>");
+                    self.skip(format!("{display}::{name}"), "nested types are not supported yet");
+                    continue;
+                }
+                _ => continue,
+            };
             let method_path = format!("{display}::{}", func_display_name(func));
             match func.cc_name() {
                 UnqualifiedIdentifier::Constructor => {
@@ -537,6 +549,9 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
             bail!("operators are not supported yet");
         };
         self.check_func(func)?;
+        if path.len() < 2 {
+            bail!("functions in the global namespace are not supported by zngur");
+        }
         if let Some(segment) = path[..path.len() - 1].iter().find(|s| is_rust_keyword(s)) {
             bail!("`{segment}` is a Rust keyword, which zngur can't use as a module name");
         }
@@ -704,7 +719,8 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
         let is_local = matches!(element.variant(), CcTypeVariant::Decl { id, .. } if self.declared.contains_key(id));
         if !is_local {
             bail!(
-                "`std::unique_ptr<{}>` must be declared in the `.zng` file of its element type",
+                "`std::unique_ptr<{}>` isn't declared in an imported `.zng` file (instantiations \
+                 belong in the file of their element type, or in `cpp_std.zng` for builtins)",
                 element_ty
             );
         }

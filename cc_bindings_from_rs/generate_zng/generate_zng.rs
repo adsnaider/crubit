@@ -149,6 +149,7 @@ pub fn generate_zng_spec(db: &BindingsGenerator, options: &ZngOptions) -> Result
             path: import.import_path.clone().into(),
             crate_name: None,
             cpp_types: vec![],
+            cpp_by_value_types: vec![],
             cpp_template_homes: vec![],
         });
     }

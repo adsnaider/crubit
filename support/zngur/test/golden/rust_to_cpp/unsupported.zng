@@ -1,0 +1,24 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following Rust crate:
+// unsupported
+//
+// Items that are not (yet) supported in this file:
+// skipped: ::unsupported::Borrowed: types with lifetime parameters are not supported yet
+// skipped: ::unsupported::HasReference::value: field: fields of reference type are not supported yet
+// skipped: ::unsupported::Speak: trait items are not supported yet
+// skipped: ::unsupported::Wrapper: generic types are not supported yet
+// skipped: ::unsupported::call: generic functions are not supported yet
+// skipped: ::unsupported::generic: generic functions are not supported yet
+// skipped: ::unsupported::maybe: generic type `std::option::Option<i32>` is not supported yet
+// skipped: ::unsupported::numbers: generic type `std::vec::Vec<i32>` is not supported yet
+// skipped: ::unsupported::slice_len: type `[u8]` is not supported yet
+// skipped: ::unsupported::type::inside_keyword_module: `type` is a Rust keyword, which zngur can't spell
+
+type ::unsupported::HasReference {
+    #layout(size = 16, align = 8);
+
+    field count (offset = 8, type = i32);
+}
