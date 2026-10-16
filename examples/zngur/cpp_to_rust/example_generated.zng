@@ -23,32 +23,32 @@ type c++::shapes::Rect {
     field const max (type = c++::geometry::Point);
     field max (type = c++::geometry::Point) as max_mut;
 
-    unsafe constructor(const c++::shapes::Rect&);
-    unsafe constructor(const c++::geometry::Point&, const c++::geometry::Point&);
+    safe constructor(const c++::shapes::Rect&);
+    safe constructor(const c++::geometry::Point&, const c++::geometry::Point&);
 
-    unsafe fn Area() const -> i32;
-    unsafe fn Translate(i32, i32);
+    safe fn Area() const -> i32;
+    safe fn Translate(i32, i32);
 }
 
 type c++::shapes::Canvas {
     #layout(size = 16, align = 8);
 
-    unsafe fn Draw(const c++::shapes::Rect&);
-    unsafe fn TotalArea() const -> i32;
+    safe fn Draw(const c++::shapes::Rect&);
+    safe fn TotalArea() const -> i32;
 }
 
 type c++::std::unique_ptr<c++::shapes::Rect> {
     #layout(size = 8, align = 8);
     #trivially_relocatable;
 
-    unsafe fn get() const -> c++::shapes::Rect*;
+    safe fn get() const -> c++::shapes::Rect*;
 }
 
 type c++::std::unique_ptr<c++::shapes::Canvas> {
     #layout(size = 8, align = 8);
     #trivially_relocatable;
 
-    unsafe fn get() const -> c++::shapes::Canvas*;
+    safe fn get() const -> c++::shapes::Canvas*;
 }
 
 mod c++::shapes {

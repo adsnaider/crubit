@@ -12,5 +12,5 @@ type<T> c++::std::unique_ptr<T> {
     #layout(size = 8, align = 8);
     #trivially_relocatable;
 
-    unsafe fn get() const -> T*;
+    safe fn get() const -> T*;
 }

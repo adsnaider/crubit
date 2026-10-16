@@ -2,5 +2,5 @@
 // name for `Segment::Length2`.
 
 type c++::shapes::Segment {
-    unsafe fn Length2() const -> i32 as length_squared;
+    safe fn Length2() const -> i32 as length_squared;
 }

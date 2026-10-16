@@ -30,7 +30,7 @@ Working examples are in
 | Generated code  | crubit's own generators   | zngur, from the `.zng` file    |
 | Amending        | Attributes in the source  | Hand-written or forked `.zng`  |
 | C++ API of Rust | The crate's namespace     | zngur's `rust::my_crate::Foo`  |
-| Rust API of C++ | Rust types with lifetimes | `c++::` types, via `CppPtr`    |
+| Rust API of C++ | Rust types with lifetimes | `c++::` types, via `CppRef`    |
 | Coverage        | Wide                      | The subset below, rest skipped |
 
 zngur's bindings follow zngur's documentation: see its book, in particular
@@ -187,14 +187,16 @@ keyword.
 -   Classes and structs (`type c++::ns::X`), with their layout:
     -   held by value (`#unsafe(trivially_relocatable)`) when crubit knows that
         they can be moved with `memcpy`;
-    -   otherwise only referred to, through pointers.
+    -   otherwise only referred to, through references (`CppRef`) and pointers
+        (`CppPtr`).
 -   Public fields (`field x` and `field x as x_mut`).
 -   Member functions (static, `const` and non-`const`). Overloads get `_2`,
-    `_3`, ... suffixes. Member functions take `this` as a pointer, so they're
-    `unsafe`.
+    `_3`, ... suffixes. They take `this` as a `CppRef`, a C++ reference.
 -   Constructors of the types that Rust holds by value.
--   Free functions, in their namespaces. They're `safe` unless they take C++
-    pointers or references, or are marked `CRUBIT_UNSAFE`.
+-   Free functions, in their namespaces.
+-   Functions, member functions and constructors are `safe` unless they take C++
+    pointers, which may be null or invalid, or are marked `CRUBIT_UNSAFE`. C++
+    references are fine: a `CppRef` refers to a valid object.
 -   `std::unique_ptr<T>`, for `T` of the same library.
 -   Types of other libraries, through imports.
 
@@ -219,6 +221,9 @@ importing file, and each generated header includes the headers of its imports
 through those paths. So keep each `.zng` file next to its generated header.
 
 ## Limitations and future work
+
+zngur's own gaps (lifetimes on `CppRef`, method-call syntax, inheritance, C++
+enums, ...) are listed on the "Future work" page of the zngur book.
 
 -   **Layouts are target-specific.** crubit writes the layouts of the target it
     runs for, and zngur checks them when the bindings compile. `cpp_std.zng`

@@ -22,13 +22,13 @@ type c++::records::Point {
     field const y (type = i32);
     field y (type = i32) as y_mut;
 
-    unsafe constructor(const c++::records::Point&);
+    safe constructor(const c++::records::Point&);
     safe constructor();
     safe constructor(i32, i32);
 
-    unsafe fn Norm2() const -> i32;
-    unsafe fn Scale(i32);
-    unsafe fn Scale(i32, i32) as Scale_2;
+    safe fn Norm2() const -> i32;
+    safe fn Scale(i32);
+    safe fn Scale(i32, i32) as Scale_2;
     safe static fn Origin() -> c++::records::Point;
 }
 
@@ -42,20 +42,20 @@ type c++::records::Keywords {
     field match (type = i32) as match_mut;
 
     safe constructor();
-    unsafe constructor(const c++::records::Keywords&);
+    safe constructor(const c++::records::Keywords&);
 
-    unsafe fn Use() const -> i32;
-    unsafe fn move(i32) as move_;
+    safe fn Use() const -> i32;
+    safe fn move(i32) as move_;
 }
 
 type c++::records::WithPrivateField {
     #layout(size = 8, align = 8);
     #unsafe(trivially_relocatable);
 
-    unsafe constructor(const c++::records::WithPrivateField&);
+    safe constructor(const c++::records::WithPrivateField&);
     safe constructor(i64);
 
-    unsafe fn Value() const -> i64;
+    safe fn Value() const -> i64;
 }
 
 type c++::records::nested::Inner {
@@ -68,5 +68,5 @@ type c++::records::nested::Inner {
     field weight (type = f64) as weight_mut;
 
     safe constructor();
-    unsafe constructor(const c++::records::nested::Inner&);
+    safe constructor(const c++::records::nested::Inner&);
 }

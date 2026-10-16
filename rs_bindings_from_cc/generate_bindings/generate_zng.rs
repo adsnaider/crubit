@@ -522,10 +522,12 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
             .map(|p| self.zngur_ty(p.type_(), Position::Value))
             .collect::<Result<Vec<_>>>()?;
         let output = self.zngur_ty(func.return_type(), Position::Value)?;
-        // `this` is a C++ pointer, so only static member functions can be safe.
-        let is_safe = receiver == ZngurMethodReceiver::Static && self.is_safe(func, &inputs);
+        // `this` is a `CppRef`, which refers to a valid object, so it doesn't make the member
+        // function unsafe.
+        let is_safe = self.is_safe(func, &inputs);
         Ok(ZngurCppMethod {
             cpp_name: name.as_str().to_string(),
+            template_args: vec![],
             rust_name: None,
             receiver,
             inputs,
@@ -565,6 +567,7 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
         let rust_name = rust_name(&cpp_name);
         Ok(ZngurCppFn {
             namespace: path[..path.len() - 1].to_vec(),
+            template_args: vec![],
             rust_name: (rust_name != cpp_name).then_some(rust_name),
             cpp_name,
             is_safe: self.is_safe(func, &inputs),
@@ -584,12 +587,11 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
         Ok(())
     }
 
-    /// Whether a (non-member, static member or constructor) function can be `safe`: zngur requires
-    /// it to have no C++ pointer or reference parameters, and crubit's safety annotations can make
-    /// it unsafe.
+    /// Whether a function can be `safe`: it isn't annotated as unsafe, and takes no C++ pointers,
+    /// which may be null or invalid. (C++ references, including `this`, are `CppRef`s, which refer
+    /// to valid objects.)
     fn is_safe(&self, func: &Func<'pb>, inputs: &[RustType]) -> bool {
-        func.safety_annotation() != SafetyAnnotation::Unsafe
-            && !inputs.iter().any(|ty| matches!(ty, RustType::CppPtr(..)))
+        func.safety_annotation() != SafetyAnnotation::Unsafe && !inputs.iter().any(contains_cpp_ptr)
     }
 
     /// Converts a C++ type to a zngur type. Fails if zngur can't express the type, or it isn't
@@ -748,13 +750,23 @@ fn unique_ptr_type(element: RustType, size_align: ir::SizeAlign) -> ZngurType {
         trivially_relocatable: TriviallyRelocatable::Checked,
         cpp_methods: vec![ZngurCppMethod {
             cpp_name: "get".to_string(),
+            template_args: vec![],
             rust_name: None,
             receiver: ZngurMethodReceiver::Ref(Mutability::Not),
             inputs: vec![],
             output: RustType::CppPtr(Mutability::Mut, CppIndirection::Pointer, Box::new(element)),
-            is_safe: false,
+            is_safe: true,
         }],
         ..empty_zngur_type(ty)
+    }
+}
+
+/// Whether `ty` is or contains a C++ pointer (e.g. `T*` or `T*&`).
+fn contains_cpp_ptr(ty: &RustType) -> bool {
+    match ty {
+        RustType::CppPtr(_, CppIndirection::Pointer, _) => true,
+        RustType::CppPtr(_, CppIndirection::Reference, inner) => contains_cpp_ptr(inner),
+        _ => false,
     }
 }
 

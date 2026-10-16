@@ -2,5 +2,5 @@
 // generated file merges: here, a snake_case name for `Rect::Area`.
 
 type c++::shapes::Rect {
-    unsafe fn Area() const -> i32 as area;
+    safe fn Area() const -> i32 as area;
 }

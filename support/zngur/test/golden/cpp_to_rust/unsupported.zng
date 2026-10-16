@@ -37,5 +37,5 @@ type c++::unsupported::Outer {
     field value (type = i32) as value_mut;
 
     safe constructor();
-    unsafe constructor(const c++::unsupported::Outer&);
+    safe constructor(const c++::unsupported::Outer&);
 }

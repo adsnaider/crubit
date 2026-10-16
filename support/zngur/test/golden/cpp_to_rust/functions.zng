@@ -30,7 +30,7 @@ mod c++::functions {
     safe fn Nothing();
     safe fn Square(i64) -> i64;
     unsafe fn Fill(i32*, i32);
-    unsafe fn Read(const i32&) -> i32;
+    safe fn Read(const i32&) -> i32;
     unsafe fn Unchecked(i32) -> i32;
 }
 mod c++::functions::inner {

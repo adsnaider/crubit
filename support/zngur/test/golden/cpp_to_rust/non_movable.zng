@@ -16,16 +16,16 @@ import "../../../cpp_std.zng";
 type c++::non_movable::Shape {
     #layout(size = 8, align = 8);
 
-    unsafe fn Area() const -> i32;
+    safe fn Area() const -> i32;
 }
 
 type c++::non_movable::Resource {
     #layout(size = 4, align = 4);
 
-    unsafe fn Id() const -> i32;
+    safe fn Id() const -> i32;
     safe static fn Create(i32) -> c++::non_movable::Resource*;
 }
 
 mod c++::non_movable {
-    unsafe fn AreaOf(const c++::non_movable::Shape&) -> i32;
+    safe fn AreaOf(const c++::non_movable::Shape&) -> i32;
 }
