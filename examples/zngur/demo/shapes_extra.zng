@@ -1,0 +1,32 @@
+// Hand-written additions to the `.zng` file that crubit generates for
+// `shapes.h`. The generated file merges this one (`extra_zng`), so these lines
+// add to its declarations, without changing crubit or the C++ library.
+
+// 1. `std::vector<Point>`, which crubit skips (class template instantiations
+//    other than `std::unique_ptr` aren't described yet). libc++'s
+//    `std::vector` can be moved with `memcpy`, so Rust can hold it by value;
+//    zngur checks the layout at compile time.
+type c++::std::vector<c++::shapes::Point> {
+    #layout(size = 24, align = 8);
+    #unsafe(trivially_relocatable);
+
+    safe fn size() const -> usize;
+    safe fn at(usize) const -> const c++::shapes::Point&;
+    safe fn push_back(const c++::shapes::Point&);
+}
+
+// ... which brings back the two member functions crubit skipped because of it.
+type c++::shapes::Polygon {
+    safe fn Points() const -> const c++::std::vector<c++::shapes::Point>&;
+    safe fn Reversed() const -> c++::std::vector<c++::shapes::Point>;
+}
+
+// 2. `std::make_unique<Canvas>()`: Rust can only refer to a `Canvas`, so it
+//    can't construct one in place, but it can own one on the heap. The
+//    instantiation `std::unique_ptr<Canvas>` gets its layout and `get()` from
+//    `cpp_std.zng`.
+type c++::std::unique_ptr<c++::shapes::Canvas> {}
+
+mod c++::std {
+    safe fn make_unique<c++::shapes::Canvas>() -> c++::std::unique_ptr<c++::shapes::Canvas> as make_canvas;
+}

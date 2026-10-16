@@ -1,0 +1,22 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following Rust crate:
+// stats
+//
+// Items that are not (yet) supported in this file:
+// skipped: ::stats::Shape: trait items are not supported yet
+// skipped: ::stats::Summary::mean: generic type `std::option::Option<f64>` is not supported yet
+// skipped: ::stats::make_square: generic type `std::boxed::Box<(dyn stats::Shape + 'static)>` is not supported yet
+
+type ::stats::Summary {
+    #layout(size = 16, align = 8);
+    wellknown_traits(Copy, Debug);
+
+    field count (offset = 8, type = i32);
+    field total (offset = 0, type = i64);
+
+    fn add(&mut self, i32);
+    fn default() -> ::stats::Summary use ::core::default::Default;
+}

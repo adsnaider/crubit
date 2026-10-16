@@ -7,6 +7,8 @@ a zngur `.zng` file, and zngur generates the bindings from it. See
 
 -   `cpp_to_rust/`: Rust calls a C++ library (`cc_zngur_bindings`).
 -   `rust_to_cpp/`: C++ calls a Rust crate (`rust_zngur_bindings`).
+-   `demo/`: a walkthrough for presenting this, including items that crubit
+    skips, added back by hand with `extra_zng` (see its README).
 
 Each example has:
 

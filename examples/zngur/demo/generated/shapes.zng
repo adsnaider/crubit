@@ -1,0 +1,60 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following C++ target:
+// //examples/zngur/demo:shapes
+//
+// Items that are not (yet) supported in this file:
+// skipped: shapes::Polygon::Points: Unsupported type 'const std::vector<shapes::Point>': crubit.rs/errors/unknown_target: Failed to complete template specialization type std::vector<Point>: the template is defined in external/+crubit_toolchains+llvm_toolchain_llvm/include/c++/v1/__vector/vector.h which is not a public header of any Crubit-enabled target that //examples/zngur/demo:shapes depends on directly. Either enable Crubit on the library that provides the header, add that library as a direct dependency (and `#include` the header directly), or move the template to a public header.
+// skipped: shapes::Polygon::Reversed: Unsupported type 'std::vector<shapes::Point>': crubit.rs/errors/unknown_target: Failed to complete template specialization type std::vector<Point>: the template is defined in external/+crubit_toolchains+llvm_toolchain_llvm/include/c++/v1/__vector/vector.h which is not a public header of any Crubit-enabled target that //examples/zngur/demo:shapes depends on directly. Either enable Crubit on the library that provides the header, add that library as a direct dependency (and `#include` the header directly), or move the template to a public header.
+
+import "../../../support/zngur/cpp_std.zng";
+
+#crate shapes_generated
+
+#cpp_additional_includes r#"
+#include "examples/zngur/demo/shapes.h"
+"#
+
+type c++::shapes::Point {
+    #layout(size = 8, align = 4);
+    #unsafe(trivially_relocatable);
+
+    field const x (type = i32);
+    field x (type = i32) as x_mut;
+    field const y (type = i32);
+    field y (type = i32) as y_mut;
+
+    safe constructor(const c++::shapes::Point&);
+    safe constructor();
+    safe constructor(i32, i32);
+
+    safe fn Scale(i32);
+    safe fn Scale(i32, i32) as Scale_2;
+}
+
+type c++::shapes::Polygon {
+    #layout(size = 24, align = 8);
+
+    safe fn Add(const c++::shapes::Point&);
+    safe fn Size() const -> i32;
+}
+
+type c++::shapes::Canvas {
+    #layout(size = 16, align = 8);
+
+    safe fn Draw(const c++::shapes::Point&);
+    safe fn Count() const -> i32;
+}
+
+type c++::std::unique_ptr<c++::shapes::Polygon> {
+    #layout(size = 8, align = 8);
+    #trivially_relocatable;
+
+    safe fn get() const -> c++::shapes::Polygon*;
+}
+
+mod c++::shapes {
+    safe fn MakeTriangle() -> c++::std::unique_ptr<c++::shapes::Polygon>;
+}

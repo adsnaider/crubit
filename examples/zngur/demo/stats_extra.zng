@@ -1,0 +1,37 @@
+// Hand-written additions to the `.zng` file that crubit generates for
+// `stats.rs`. The generated file merges this one (`extra_zng`).
+
+type bool {
+    #layout(size = 1, align = 1);
+    wellknown_traits(Copy);
+}
+
+// 1. `Summary::mean`, which returns an `Option<f64>`: crubit doesn't describe
+//    generic types yet.
+type ::core::option::Option<f64> {
+    #layout(size = 16, align = 8);
+    wellknown_traits(Copy);
+
+    fn is_some(&self) -> bool;
+    fn unwrap(self) -> f64;
+}
+
+type ::stats::Summary {
+    fn mean(&self) -> ::core::option::Option<f64>;
+}
+
+// 2. The trait `Shape`, and `make_square`, which returns a `Box<dyn Shape>`:
+//    crubit doesn't describe traits yet.
+trait ::stats::Shape {
+    fn area(&self) -> f64;
+}
+
+type Box<dyn ::stats::Shape> {
+    #layout(size = 16, align = 8);
+
+    fn area(&self) -> f64 deref dyn ::stats::Shape;
+}
+
+mod ::stats {
+    fn make_square(f64) -> Box<dyn ::stats::Shape>;
+}
