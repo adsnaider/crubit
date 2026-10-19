@@ -1,5 +1,5 @@
 {
-  "checksum": "25bc5d37e2bfb278658ea96b9bbd2ffd6e8aba1311c891ea61d63477a2888245",
+  "checksum": "2a6adbcd3e61724feaffc432376430aa3da384dcc11d40b388fbe581e487bf8b",
   "crates": {
     "aho-corasick 1.1.5": {
       "name": "aho-corasick",
@@ -13287,7 +13287,7 @@
         "Git": {
           "remote": "file:///usr/local/google/home/asnaider/repos/zngur",
           "commitish": {
-            "Rev": "013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2"
+            "Rev": "4e45eec22003dc3da47166d6daf923fe573e2073"
           },
           "strip_prefix": "zngur"
         }
@@ -13338,7 +13338,7 @@
         "Git": {
           "remote": "file:///usr/local/google/home/asnaider/repos/zngur",
           "commitish": {
-            "Rev": "013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2"
+            "Rev": "4e45eec22003dc3da47166d6daf923fe573e2073"
           },
           "strip_prefix": "zngur-def"
         }
@@ -13399,7 +13399,7 @@
         "Git": {
           "remote": "file:///usr/local/google/home/asnaider/repos/zngur",
           "commitish": {
-            "Rev": "013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2"
+            "Rev": "4e45eec22003dc3da47166d6daf923fe573e2073"
           },
           "strip_prefix": "zngur-generator"
         }
@@ -13474,7 +13474,7 @@
         "Git": {
           "remote": "file:///usr/local/google/home/asnaider/repos/zngur",
           "commitish": {
-            "Rev": "013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2"
+            "Rev": "4e45eec22003dc3da47166d6daf923fe573e2073"
           },
           "strip_prefix": "zngur-lib"
         }
@@ -13516,7 +13516,7 @@
         "Git": {
           "remote": "file:///usr/local/google/home/asnaider/repos/zngur",
           "commitish": {
-            "Rev": "013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2"
+            "Rev": "4e45eec22003dc3da47166d6daf923fe573e2073"
           },
           "strip_prefix": "zngur-parser"
         }

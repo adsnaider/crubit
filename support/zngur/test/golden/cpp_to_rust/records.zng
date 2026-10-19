@@ -29,7 +29,7 @@ type c++::records::Point {
     safe fn Norm2<'__this>(&'__this const self) -> i32;
     safe fn Scale<'__this>(&'__this unique var self, i32);
     safe fn Scale<'__this>(&'__this unique var self, i32, i32) as Scale_2;
-    safe static fn Origin() -> c++::records::Point;
+    safe fn Origin() -> c++::records::Point;
 }
 
 type c++::records::Keywords {

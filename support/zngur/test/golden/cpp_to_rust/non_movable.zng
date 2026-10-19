@@ -23,7 +23,7 @@ type c++::non_movable::Resource {
     #layout(size = 4, align = 4);
 
     safe fn Id<'__this>(&'__this const self) -> i32;
-    safe static fn Create(i32) -> c++::non_movable::Resource*;
+    safe fn Create(i32) -> c++::non_movable::Resource*;
 }
 
 mod c++::non_movable {
