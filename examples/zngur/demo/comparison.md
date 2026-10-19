@@ -17,8 +17,8 @@ doesn't measure the quality of the two kinds of bindings.
 | Fixing a skipped item | change crubit, or write FFI by hand | add a few lines to `extra_zng`, or fork the `.zng` file |
 
 crubit's own bindings do better in places. They expose C++ fields as real Rust
-fields, they have lifetimes for references, and they construct non-movable
-types in place with `Ctor`.
+fields, and they construct non-movable types in place with `Ctor`. Both follow
+crubit's lifetime rules for references (here, with `assume_lifetimes`).
 
 ## How much code is generated
 

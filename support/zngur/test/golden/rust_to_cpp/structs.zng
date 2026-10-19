@@ -16,7 +16,7 @@ type ::structs::Guard {
     #layout(size = 4, align = 4);
 
     fn new(i32) -> ::structs::Guard as new_;
-    fn value(&self) -> i32;
+    fn value<'a>(&'a self) -> i32;
 }
 
 type ::structs::Named {
@@ -25,7 +25,7 @@ type ::structs::Named {
 
     field id (offset = 24, type = u64);
 
-    fn name_len(&self) -> usize;
+    fn name_len<'a>(&'a self) -> usize;
     fn clone(&self) -> ::structs::Named use ::core::clone::Clone;
     fn default() -> ::structs::Named use ::core::default::Default;
 }
@@ -46,9 +46,9 @@ type ::structs::Point {
     field y (offset = 4, type = i32);
 
     fn new(i32, i32) -> ::structs::Point as new_;
-    fn norm2(&self) -> i32;
-    fn scale(&mut self, i32);
+    fn norm2<'a>(&'a self) -> i32;
+    fn scale<'a>(&'a mut self, i32);
     fn into_sum(self) -> i64;
-    fn x(&self) -> i32 as x_;
+    fn x<'a>(&'a self) -> i32 as x_;
     fn default() -> ::structs::Point use ::core::default::Default;
 }

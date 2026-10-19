@@ -17,22 +17,22 @@ type c++::unique_ptr::Widget {
     #layout(size = 4, align = 4);
     #unsafe(trivially_relocatable);
 
-    field const id (type = i32);
-    field id (type = i32) as id_mut;
+    field &const id (type = i32);
+    field &unique var id (type = i32) as id_mut;
 
     safe constructor();
-    safe constructor(const c++::unique_ptr::Widget&);
+    safe constructor<'a>(&'a const c++::unique_ptr::Widget);
 }
 
 type c++::std::unique_ptr<c++::unique_ptr::Widget> {
     #layout(size = 8, align = 8);
     #trivially_relocatable;
 
-    safe fn get() const -> c++::unique_ptr::Widget*;
+    safe fn get<'a>(&'a const self) -> c++::unique_ptr::Widget*;
 }
 
 mod c++::unique_ptr {
     safe fn MakeWidget(i32) -> c++::std::unique_ptr<c++::unique_ptr::Widget>;
     safe fn Consume(c++::std::unique_ptr<c++::unique_ptr::Widget>);
-    safe fn IdOf(const c++::std::unique_ptr<c++::unique_ptr::Widget>&) -> i32;
+    safe fn IdOf<'widget>(&'widget const c++::std::unique_ptr<c++::unique_ptr::Widget>) -> i32;
 }

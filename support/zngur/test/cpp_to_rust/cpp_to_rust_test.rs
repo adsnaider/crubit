@@ -4,10 +4,9 @@
 
 //! Calls C++ libraries through the bindings of `cc_zngur_bindings`.
 
-use crubit_zngur_cpp_std::std::unique_ptr;
-use geo_zngur::geo::{Add, Counter, MakeCounter, MakePoint, NextOf, Point};
+use geo_zngur::geo::{Add, MakeCounter, MakePoint, NextOf, Point};
 use shapes_zngur::shapes::{Segment, UnitSegment};
-use zngur_lib::ZngCppConstruct;
+use zngur_lib::{Const, Cpp, ZngCppConstruct};
 
 #[test]
 fn test_free_function() {
@@ -17,30 +16,32 @@ fn test_free_function() {
 #[test]
 fn test_value_type() {
     let mut p = Point::build((3, 4));
-    assert_eq!(Point::Norm2(p.as_ref()), 25);
-    Point::Scale(p.as_mut(), 2);
-    assert_eq!(Point::x(p.as_ref()).read(), 6);
-    Point::y_mut(p.as_mut()).write(1);
-    assert_eq!(Point::Norm2(p.as_ref()), 37);
+    assert_eq!(p.Norm2(), 25);
+    p.Scale(2);
+    // Fields are C++ objects: `&Cpp<i32, Const>` and `&mut Cpp<i32>`.
+    let x: &Cpp<i32, Const> = p.x();
+    assert_eq!(x.get(), 6);
+    p.y_mut().set(1);
+    assert_eq!(p.Norm2(), 37);
     let origin = Point::Origin();
-    assert_eq!(Point::Norm2(origin.as_ref()), 0);
+    assert_eq!(origin.Norm2(), 0);
 }
 
 #[test]
 fn test_unique_ptr() {
     let p = MakePoint(1, 2);
     // SAFETY: `p` owns a `Point`, which lives as long as it does.
-    let point = unsafe { unique_ptr::<Point>::get(p.as_ref()).as_cpp_ref() }.expect("null");
-    assert_eq!(Point::Norm2(point.as_const()), 5);
+    let point = unsafe { p.get().as_ref() }.expect("null");
+    assert_eq!(point.Norm2(), 5);
 }
 
 #[test]
 fn test_reference_only_type() {
     let counter = MakeCounter();
-    // SAFETY: `counter` owns a `Counter`, which lives as long as it does.
-    let counter_ref =
-        unsafe { unique_ptr::<Counter>::get(counter.as_ref()).as_cpp_ref() }.expect("null");
-    assert_eq!(Counter::Next(counter_ref), 1);
+    // SAFETY: `counter` owns a `Counter`, which lives as long as it does, and nothing else refers
+    // to it meanwhile.
+    let counter_ref = unsafe { counter.get().as_mut() }.expect("null");
+    assert_eq!(counter_ref.Next(), 1);
     assert_eq!(NextOf(counter_ref), 2);
 }
 
@@ -48,14 +49,14 @@ fn test_reference_only_type() {
 fn test_type_of_dependency() {
     let from = Point::build((1, 1));
     let to = Point::build((4, 5));
-    let segment = Segment::build((from.as_ref(), to.as_ref()));
-    assert_eq!(Segment::Length2(segment.as_ref()), 25);
-    assert_eq!(Point::Norm2(Segment::to(segment.as_ref())), 41);
-    assert_eq!(Segment::Length2(UnitSegment().as_ref()), 1);
+    let segment = Segment::build((from.as_const(), to.as_const()));
+    assert_eq!(segment.Length2(), 25);
+    assert_eq!(segment.to().Norm2(), 41);
+    assert_eq!(UnitSegment().Length2(), 1);
 }
 
 #[test]
 fn test_extra_zng() {
     let segment = UnitSegment();
-    assert_eq!(Segment::length_squared(segment.as_ref()), 1);
+    assert_eq!(segment.length_squared(), 1);
 }

@@ -30,7 +30,7 @@ def _zng_golden_test(name, zng, build):
             targets = [":" + name + "_zngur", ":" + name + "_zngur_rs"],
         )
 
-def cc_zng_golden_test(name, deps = [], cc_deps = [], build = True):
+def cc_zng_golden_test(name, deps = [], cc_deps = [], aspect_hints = [], build = True):
     """A golden test of the `.zng` file of the C++ library `<name>.h`.
 
     Defines `<name>` (the library), `<name>_zngur` (its bindings, crate `<name>_zngur`),
@@ -41,6 +41,8 @@ def cc_zng_golden_test(name, deps = [], cc_deps = [], build = True):
       name: The name of the test, and of its header.
       deps: The tests whose libraries the library uses. The `.zng` file imports theirs.
       cc_deps: Other dependencies of the library.
+      aspect_hints: The `aspect_hints` of the library, e.g. its crubit features
+        (`//features:assume_lifetimes`), which decide how crubit reads C++ references.
       build: Whether to build the bindings. Only `False` with a comment about what's missing.
     """
     generated_tags = [] if build else ["manual"]
@@ -48,6 +50,7 @@ def cc_zng_golden_test(name, deps = [], cc_deps = [], build = True):
         name = name,
         hdrs = [name + ".h"],
         deps = deps + cc_deps,
+        aspect_hints = aspect_hints,
     )
     zng_from_cc(
         name = name + "_zngur_zng",

@@ -1,0 +1,34 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following C++ target:
+// //support/zngur/test/golden/cpp_to_rust:no_lifetimes
+
+import "../../../cpp_std.zng";
+
+#crate no_lifetimes_zngur
+
+#cpp_additional_includes r#"
+#include "support/zngur/test/golden/cpp_to_rust/no_lifetimes.h"
+"#
+
+type c++::no_lifetimes::Counter {
+    #layout(size = 4, align = 4);
+    #unsafe(trivially_relocatable);
+
+    field &const count (type = i32);
+    field &unique var count (type = i32) as count_mut;
+
+    safe constructor<'a>(&'a const c++::no_lifetimes::Counter);
+    safe constructor();
+
+    unsafe fn Get(const self&) -> i32;
+    unsafe fn Add(self&, const i32&);
+    unsafe fn Ref(self&) -> i32&;
+    safe static fn Twice(i32) -> i32;
+}
+
+mod c++::no_lifetimes {
+    unsafe fn Read(const c++::no_lifetimes::Counter&) -> i32;
+}

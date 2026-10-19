@@ -18,5 +18,5 @@ type<T> c++::std::unique_ptr<T> {
     }
     #trivially_relocatable;
 
-    safe fn get() const -> T*;
+    safe fn get<'a>(&'a const self) -> T*;
 }

@@ -54,8 +54,10 @@ merges).
 4. **What Rust gets.** The script lists the functions that the merge added:
    `Points`, `Reversed`, `size`, `at`, `push_back` and `make_canvas`.
 5. **It runs.** `main.rs` iterates the polygon's points through
-   `std::vector<Point>` and draws them on a `Canvas` it created. Member
-   functions are `safe`, since `this` is a C++ reference (`CppRef`).
+   `std::vector<Point>` and draws them on a `Canvas` it created. With crubit's
+   `assume_lifetimes` feature, C++ references get lifetimes: member functions
+   are `safe` Rust methods (`&'a const self` / `&'a unique var self` in the
+   `.zng` file), and a `const Point&` is a `&'a Point<Const>`.
 6. **Same in the other direction.** For a Rust crate, crubit skips
    `Option<f64>`, traits and `Box<dyn Shape>`. `stats_extra.zng` adds them, and
    `main.cc` calls `summary.mean()` and `square.area()` from C++.
@@ -70,9 +72,12 @@ merges).
 ## Caveats (say them before you're asked)
 
 - **Coverage.** The `.zng` emitters cover less than crubit's own generators.
-  crubit's own bindings expose real Rust fields, lifetimes for references, and
-  in-place construction of non-movable types (`Ctor`).
-- **Safety.** A `CppRef` has no lifetime.
+  crubit's own bindings expose real Rust fields, and in-place construction of
+  non-movable types (`Ctor`).
+- **Safety.** References follow crubit's lifetime rules, but zngur can't check
+  the lifetimes against C++: like crubit's own bindings, they're a promise.
+  Without lifetime information (no `assume_lifetimes` or annotations), C++
+  references are raw pointers, and the functions that take them are `unsafe`.
 - **Generated code size.** zngur generates about 4 to 5 times as much code as
   crubit's own bindings for `shapes.h`, mostly in its C++ header (see
   `comparison.md`). crubit's own part shrinks to the `.zng` file.

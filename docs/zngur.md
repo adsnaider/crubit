@@ -30,7 +30,7 @@ Working examples are in
 | Generated code  | crubit's own generators   | zngur, from the `.zng` file    |
 | Amending        | Attributes in the source  | Hand-written or forked `.zng`  |
 | C++ API of Rust | The crate's namespace     | zngur's `rust::my_crate::Foo`  |
-| Rust API of C++ | Rust types with lifetimes | `c++::` types, via `CppRef`    |
+| Rust API of C++ | Rust types with lifetimes | `c++::` types and references   |
 | Coverage        | Wide                      | The subset below, rest skipped |
 
 zngur's bindings follow zngur's documentation: see its book, in particular
@@ -77,6 +77,8 @@ load("//support/zngur:defs.bzl", "cc_zngur_bindings")
 cc_library(
     name = "geometry",
     hdrs = ["geometry.h"],
+    # Optional: crubit's default lifetimes for C++ references (see below).
+    aspect_hints = ["//features:assume_lifetimes"],
 )
 
 cc_zngur_bindings(
@@ -117,7 +119,7 @@ They're made of three rules, which you can also use directly:
     on a crate.
 -   `zng_from_cc(lib, deps, crate_name, extra_zng)` runs
     `rs_bindings_from_cc --zng_out` on a library's public headers, with the
-    library's compile flags.
+    library's compile flags and crubit features (from its `aspect_hints`).
 -   `zngur_library(zng, srcs, deps, crate_name, rust_deps, cc_deps)` runs zngur
     on a `.zng` file, and builds its two sides.
 
@@ -195,6 +197,8 @@ destroys the object when it's dropped. `examples/zngur/cpp_to_rust` does this.
 -   Free functions, in their modules.
 -   Inherent methods, with `self`, `&self` or `&mut self`. Methods whose names
     clash with a field get a `_` suffix.
+-   The lifetimes of functions and methods (`fn f<'a>(&'a str) -> &'a str`).
+    Elided ones get names (`'a`, `'b`, ...), so they're always declared.
 -   `Copy`, `Clone`, `Default`, `Debug` and `Drop`.
 -   Primitives, `bool`, `char` and `&str`.
 -   Types of other crates, through imports.
@@ -208,22 +212,54 @@ keyword.
 -   Classes and structs (`type c++::ns::X`), with their layout:
     -   held by value (`#unsafe(trivially_relocatable)`) when crubit knows that
         they can be moved with `memcpy`;
-    -   otherwise only referred to, through references (`CppRef`) and pointers
-        (`CppPtr`).
--   Public fields (`field x` and `field x as x_mut`).
--   Member functions (static, `const` and non-`const`). Overloads get `_2`,
-    `_3`, ... suffixes. They take `this` as a `CppRef`, a C++ reference.
+    -   otherwise only referred to, through references and pointers.
+-   Public fields: `field &const x` (a `&Cpp<i32, Const>` or `&T<Const>` in
+    Rust) and, for non-`const` fields, `field &unique var x as x_mut` (a
+    `&mut Cpp<i32>` or `&mut T`).
+-   Member functions (static, `const` and non-`const`), which are Rust methods.
+    Overloads get `_2`, `_3`, ... suffixes.
 -   Constructors of the types that Rust holds by value.
 -   Free functions, in their namespaces.
--   Functions, member functions and constructors are `safe` unless they take C++
-    pointers, which may be null or invalid, or are marked `CRUBIT_UNSAFE`. C++
-    references are fine: a `CppRef` refers to a valid object.
+-   C++ references, following crubit's own rule (see below).
+-   Functions, member functions and constructors are `safe` unless they take raw
+    pointers (C++ pointers, or C++ references without a lifetime), which may be
+    null or invalid, or are marked `CRUBIT_UNSAFE`.
 -   `std::unique_ptr<T>`, for `T` of the same library.
 -   Types of other libraries, through imports.
 
+#### C++ references
+
+A C++ reference with lifetime information is a reference to a C++ object in the
+`.zng` file, whose lifetime the function declares:
+
+-   `const T&` is `&'a const T` (`&'a T<Const>` in Rust, or
+    `&'a Cpp<i32, Const>` for a builtin);
+-   `T&` is `&'a unique var T` (`&'a mut T` / `&'a mut Cpp<i32>`), which matches
+    crubit's `&mut`;
+-   `this` is `&'a const self` (a `const` member function, a `&self` method) or
+    `&'a unique var self` (a `&mut self` method).
+
+The lifetime information comes from the same places as in crubit's own
+bindings:
+
+-   explicit annotations, like `const T& $a` (`support/lifetime_annotations.h`);
+-   constructors, whose references get lifetimes like in crubit;
+-   the `assume_lifetimes` feature (`aspect_hints =
+    ["//features:assume_lifetimes"]`, also part of `//features:supported`),
+    which gives references crubit's default lifetimes. With
+    `assume_this_lifetimes`, only `this` gets one.
+
+Lifetimes are always named and declared on the function (elided ones get fresh
+names), so the `.zng` file never relies on elision. Any other reference is raw:
+`const T&` / `T&` (a raw pointer in Rust), or a `const self&` / `self&`
+receiver, which makes the member function an associated function taking `this`
+as a raw pointer. Functions that take raw references are `unsafe`. A returned
+reference whose lifetime crubit can't name is raw as well. C++ types with
+lifetime parameters are skipped.
+
 Skipped: enums, templates, type aliases, operators, nested types, unions,
-functions in the global namespace, `char`, `void*`, pointers to pointers, and
-`std::unique_ptr` of builtins.
+functions in the global namespace, `char`, `void*`, pointers to pointers,
+`std::unique_ptr` of builtins, and C++ types with lifetime parameters.
 
 ## Without Bazel
 
@@ -243,8 +279,8 @@ through those paths. So keep each `.zng` file next to its generated header.
 
 ## Limitations and future work
 
-zngur's own gaps (lifetimes on `CppRef`, method-call syntax, inheritance, C++
-enums, ...) are listed on the "Future work" page of the zngur book.
+zngur's own gaps (inheritance, C++ enums, ...) are listed on the "Future work"
+page of the zngur book.
 
 -   **Layouts are target-specific.** crubit writes the layouts of the target it
     runs for, and zngur checks them when the bindings compile. Hand-written

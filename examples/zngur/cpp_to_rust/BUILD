@@ -10,6 +10,10 @@ licenses(["notice"])
 cc_library(
     name = "point_lib",
     hdrs = ["point.h"],
+    # crubit gives C++ references default lifetimes, which makes them references to C++ objects
+    # in the `.zng` file (e.g. `&'a const Point`), and member functions methods with
+    # `&'a const self` / `&'a unique var self` receivers.
+    aspect_hints = ["//features:assume_lifetimes"],
 )
 
 # Rust bindings for `point_lib`: the crate `point_lib_zngur`, in `:point_lib_zngur_rs`.
@@ -21,6 +25,7 @@ cc_zngur_bindings(
 cc_library(
     name = "example_lib",
     hdrs = ["example.h"],
+    aspect_hints = ["//features:assume_lifetimes"],
     deps = [":point_lib"],
 )
 

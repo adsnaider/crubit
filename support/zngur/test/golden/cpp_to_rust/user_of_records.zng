@@ -19,24 +19,24 @@ type c++::user_of_records::Segment {
     #layout(size = 16, align = 4);
     #unsafe(trivially_relocatable);
 
-    field const from (type = c++::records::Point);
-    field from (type = c++::records::Point) as from_mut;
-    field const to (type = c++::records::Point);
-    field to (type = c++::records::Point) as to_mut;
+    field &const from (type = c++::records::Point);
+    field &unique var from (type = c++::records::Point) as from_mut;
+    field &const to (type = c++::records::Point);
+    field &unique var to (type = c++::records::Point) as to_mut;
 
     safe constructor();
-    safe constructor(const c++::user_of_records::Segment&);
+    safe constructor<'a>(&'a const c++::user_of_records::Segment);
 }
 
 type c++::std::unique_ptr<c++::user_of_records::Segment> {
     #layout(size = 8, align = 8);
     #trivially_relocatable;
 
-    safe fn get() const -> c++::user_of_records::Segment*;
+    safe fn get<'a>(&'a const self) -> c++::user_of_records::Segment*;
 }
 
 mod c++::user_of_records {
-    safe fn Midpoint(const c++::user_of_records::Segment&) -> c++::records::Point;
+    safe fn Midpoint<'segment>(&'segment const c++::user_of_records::Segment) -> c++::records::Point;
     safe fn Wrap(i32) -> c++::std::unique_ptr<c++::unique_ptr::Widget>;
     safe fn MakeSegment() -> c++::std::unique_ptr<c++::user_of_records::Segment>;
 }

@@ -32,7 +32,7 @@ mod ::functions {
     fn mix(f64, f32) -> f64;
     fn next_char(char) -> char;
     fn nothing();
-    fn str_len(&str) -> usize;
+    fn str_len<'a>(&'a str) -> usize;
 }
 mod ::functions::inner {
     fn twice(i32) -> i32;

@@ -10,15 +10,15 @@ type c++::std::vector<c++::shapes::Point> {
     #layout(size = 24, align = 8);
     #unsafe(trivially_relocatable);
 
-    safe fn size() const -> usize;
-    safe fn at(usize) const -> const c++::shapes::Point&;
-    safe fn push_back(const c++::shapes::Point&);
+    safe fn size<'a>(&'a const self) -> usize;
+    safe fn at<'a>(&'a const self, usize) -> &'a const c++::shapes::Point;
+    safe fn push_back<'a>(&'a unique var self, &'a const c++::shapes::Point);
 }
 
 // ... which brings back the two member functions crubit skipped because of it.
 type c++::shapes::Polygon {
-    safe fn Points() const -> const c++::std::vector<c++::shapes::Point>&;
-    safe fn Reversed() const -> c++::std::vector<c++::shapes::Point>;
+    safe fn Points<'a>(&'a const self) -> &'a const c++::std::vector<c++::shapes::Point>;
+    safe fn Reversed<'a>(&'a const self) -> c++::std::vector<c++::shapes::Point>;
 }
 
 // 2. `std::make_unique<Canvas>()`: Rust can only refer to a `Canvas`, so it

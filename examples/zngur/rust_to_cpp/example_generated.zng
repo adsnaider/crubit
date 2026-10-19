@@ -14,8 +14,8 @@ type ::example::Canvas {
     #layout(size = 24, align = 8);
     wellknown_traits(Debug);
 
-    fn draw(&mut self, ::example::Rect);
-    fn total_area(&self) -> i32;
+    fn draw<'a>(&'a mut self, ::example::Rect);
+    fn total_area<'a>(&'a self) -> i32;
     fn default() -> ::example::Canvas use ::core::default::Default;
 }
 
@@ -27,8 +27,8 @@ type ::example::Rect {
     field max (offset = 8, type = ::point::Point);
 
     fn new(::point::Point, ::point::Point) -> ::example::Rect as new_;
-    fn area(&self) -> i32;
-    fn translate(&mut self, i32, i32);
+    fn area<'a>(&'a self) -> i32;
+    fn translate<'a>(&'a mut self, i32, i32);
 }
 
 // Hand-written additions.

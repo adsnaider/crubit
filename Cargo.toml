@@ -59,10 +59,10 @@ unicode-ident = "1"
 # zngur (https://github.com/HKalbasi/zngur): crubit can emit zngur `.zng` files instead of its own
 # bindings, and zngur generates the bindings from them.
 # TODO: Depend on a zngur release once the C++-to-Rust support is upstream.
-zngur-def = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c", features = ["printing"] }
-zngur = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c" }
-zngur-parser = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c" }
-zngur-lib = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c" }
+zngur-def = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2", features = ["printing"] }
+zngur = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2" }
+zngur-parser = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2" }
+zngur-lib = { git = "file:///usr/local/google/home/asnaider/repos/zngur", rev = "013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2" }
 
 [workspace.package]
 

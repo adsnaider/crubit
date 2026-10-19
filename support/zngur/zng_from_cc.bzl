@@ -8,8 +8,29 @@ load("@bazel_tools//tools/build_defs/cc:action_names.bzl", "ACTION_NAMES")
 load("@bazel_tools//tools/cpp:toolchain_utils.bzl", "find_cpp_toolchain", "use_cpp_toolchain")
 load("@rules_cc//cc/common:cc_common.bzl", "cc_common")
 load("@rules_cc//cc/common:cc_info.bzl", "CcInfo")
+load("//features:crubit_feature_hint.bzl", "find_crubit_features")
 load("//support/zngur:providers.bzl", "ZngFileInfo", "ZngurInfo")
 load("//support/zngur:zngur_library.bzl", "stage_file")
+
+_CrubitFeaturesInfo = provider(
+    doc = "The crubit features of a C++ library, from its `aspect_hints`.",
+    fields = {"features": "The list of enabled crubit features."},
+)
+
+def _crubit_features_aspect_impl(target, ctx):
+    return [_CrubitFeaturesInfo(features = find_crubit_features(target, ctx))]
+
+# Collects the crubit features of the library (e.g. `aspect_hints = ["//features:supported"]`),
+# which decide how crubit reads its API: `assume_lifetimes` gives C++ references lifetimes, and so
+# makes them references to C++ objects in the `.zng` file rather than raw pointers.
+_crubit_features_aspect = aspect(
+    implementation = _crubit_features_aspect_impl,
+    attrs = {
+        "_globally_enabled_features": attr.label(
+            default = "//common/bazel_support:globally_enabled_features",
+        ),
+    },
+)
 
 # Compiler flags that don't apply to parsing headers (`-c`, `-o`, `-MF` and `-MT` take a value).
 _IGNORED_FLAGS_WITH_VALUE = ["-c", "-o", "-MF", "-MT"]
@@ -91,7 +112,7 @@ def _zng_from_cc_impl(ctx):
     cpp_std = ctx.attr._cpp_std[ZngurInfo]
     cpp_std_target = label_string(ctx.attr._cpp_std.label)
     target_args = [
-        {"t": target, "h": [h.path for h in public_headers]},
+        {"t": target, "h": [h.path for h in public_headers], "f": ctx.attr.lib[_CrubitFeaturesInfo].features},
         {"t": cpp_std_target, "h": _cpp_std_headers(cc_toolchain), "f": ["supported", "experimental"]},
     ]
     imports = [(cpp_std_target, cpp_std)]
@@ -159,9 +180,12 @@ The module of the `.zng` file is the crate `crate_name`, which must be the `crat
 `zngur_library`.""",
     attrs = {
         "lib": attr.label(
-            doc = "The C++ library, whose public headers (`hdrs`) are the API.",
+            doc = "The C++ library, whose public headers (`hdrs`) are the API. Its crubit " +
+                  "features (`aspect_hints`) apply, e.g. `//features:assume_lifetimes` for C++ " +
+                  "references with lifetimes.",
             providers = [CcInfo],
             mandatory = True,
+            aspects = [_crubit_features_aspect],
         ),
         "deps": attr.label_list(
             doc = "The `zngur_library` targets of libraries whose types the API uses. The `.zng` " +

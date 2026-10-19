@@ -1720,8 +1720,11 @@ name = "rs_bindings_from_cc_generate_zng"
 version = "0.0.0"
 dependencies = [
  "arc_anyhow",
+ "crubit_feature",
  "quote",
+ "rs_bindings_from_cc_database",
  "rs_bindings_from_cc_ir",
+ "rs_bindings_from_cc_lifetime_defaults_transform",
  "zngur-def",
  "zngur-parser",
 ]
@@ -2330,7 +2333,7 @@ checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 [[package]]
 name = "zngur"
 version = "0.11.0"
-source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c#6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c"
+source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2#013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2"
 dependencies = [
  "zngur-generator",
 ]
@@ -2338,7 +2341,7 @@ dependencies = [
 [[package]]
 name = "zngur-def"
 version = "0.11.0"
-source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c#6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c"
+source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2#013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2"
 dependencies = [
  "indexmap",
  "itertools 0.15.0",
@@ -2347,7 +2350,7 @@ dependencies = [
 [[package]]
 name = "zngur-generator"
 version = "0.11.0"
-source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c#6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c"
+source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2#013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2"
 dependencies = [
  "askama",
  "hex",
@@ -2361,12 +2364,12 @@ dependencies = [
 [[package]]
 name = "zngur-lib"
 version = "0.11.0"
-source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c#6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c"
+source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2#013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2"
 
 [[package]]
 name = "zngur-parser"
 version = "0.11.0"
-source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c#6b1ddc278cc80ae22b91cc4c4eb9d98a6491eb6c"
+source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2#013db3d0a1c961d6cc1c9b8e3c05108c1e03e4d2"
 dependencies = [
  "ariadne",
  "chumsky",

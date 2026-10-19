@@ -86,8 +86,11 @@ rust_library(
         "//rs_bindings_from_cc:__subpackages__",
     ],
     deps = [
+        ":lifetime_defaults_transform",
         "//common:arc_anyhow",
+        "//common:crubit_feature",
         "//rs_bindings_from_cc:ir",
+        "//rs_bindings_from_cc/generate_bindings/database",
         "@crate_index//:quote",  # v1
         "@crate_index//:zngur-def",
         "@crate_index//:zngur-parser",

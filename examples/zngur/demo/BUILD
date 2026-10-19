@@ -14,6 +14,9 @@ licenses(["notice"])
 cc_library(
     name = "shapes",
     hdrs = ["shapes.h"],
+    # crubit's default lifetimes make C++ references references to C++ objects, and member
+    # functions methods.
+    aspect_hints = ["//features:assume_lifetimes"],
 )
 
 # "Before": only what crubit generates.

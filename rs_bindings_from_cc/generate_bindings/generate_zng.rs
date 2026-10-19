@@ -14,21 +14,32 @@
 //! Items that can't be expressed in the `.zng` file (yet) are listed in `// skipped:` comments,
 //! with the reason. Types of dependency targets come from those targets' `.zng` files, which the
 //! file `import`s.
+//!
+//! C++ references follow crubit's own rule: a reference with lifetime information (an explicit
+//! `$(a)` annotation, the lifetimes that crubit infers for constructors, or the defaults of the
+//! `assume_lifetimes` feature) is a reference to a C++ object in the `.zng` file (`&'a const T` for
+//! a `const T&`, and `&'a unique var T` for a `T&`, which matches crubit's `&mut`), with its
+//! lifetime declared on the function. Any other reference is a raw one (`const T&` / `T&`, a raw
+//! pointer in Rust), and the function is `unsafe` if it takes one.
 
 use arc_anyhow::{anyhow, bail, Result};
+use crubit_feature::CrubitFeature;
+use database::BindingsGenerator;
 use ir::{
     AccessSpecifier, CcType, CcTypeVariant, Func, Item, ItemId, PointerTypeKind, Primitive, Record,
     ReferenceQualification, SafetyAnnotation, TemplateSpecializationKind, UnqualifiedIdentifier,
     IR,
 };
+use lifetime_defaults_transform::lifetime_defaults_transform_func;
 use std::collections::{HashMap, HashSet};
 use std::fmt::Write as _;
 use std::path::PathBuf;
 use zngur_def::printing::IDLPrinter;
 use zngur_def::{
-    AdditionalIncludes, CppIndirection, CppTypePath, LayoutPolicy, ModuleImport, Mutability,
-    PrimitiveRustType, RustType, TriviallyRelocatable, ZngurCppConstructor, ZngurCppField,
-    ZngurCppFn, ZngurCppMethod, ZngurMethodReceiver, ZngurSpec, ZngurType, ZngurWellknownTrait,
+    AdditionalIncludes, CppConstness, CppFieldAccess, CppIndirection, CppTypePath, LayoutPolicy,
+    Lifetime, ModuleImport, Mutability, PrimitiveRustType, RustType, TriviallyRelocatable,
+    ZngurCppConstructor, ZngurCppField, ZngurCppFn, ZngurCppMethod, ZngurMethodReceiver, ZngurSpec,
+    ZngurType, ZngurWellknownTrait,
 };
 
 /// The `.zng` file of a dependency target, which the generated file imports.
@@ -65,9 +76,12 @@ pub struct SkippedItem {
     pub reason: String,
 }
 
-/// Generates the contents of the `.zng` file for the current target of `ir`.
-pub fn generate_zng(ir: &IR, options: &ZngOptions) -> Result<String> {
-    let (spec, skipped) = generate_zng_spec(ir, options)?;
+/// Generates the contents of the `.zng` file for the current target of `db.ir()`. `db` is crubit's
+/// bindings database (see `generate_bindings::new_database`), which applies the lifetime rules of
+/// the target's features.
+pub fn generate_zng(db: &BindingsGenerator<'_>, options: &ZngOptions) -> Result<String> {
+    let ir = db.ir();
+    let (spec, skipped) = generate_zng_spec(db, options)?;
 
     // Writing to a `String` can't fail, so the `writeln!` results are ignored below.
     let mut out = String::new();
@@ -101,8 +115,12 @@ pub fn generate_zng(ir: &IR, options: &ZngOptions) -> Result<String> {
     Ok(out)
 }
 
-/// Builds the `ZngurSpec` for the current target of `ir`, and the list of skipped items.
-pub fn generate_zng_spec(ir: &IR, options: &ZngOptions) -> Result<(ZngurSpec, Vec<SkippedItem>)> {
+/// Builds the `ZngurSpec` for the current target of `db.ir()`, and the list of skipped items.
+pub fn generate_zng_spec(
+    db: &BindingsGenerator<'_>,
+    options: &ZngOptions,
+) -> Result<(ZngurSpec, Vec<SkippedItem>)> {
+    let ir = db.ir();
     let crate_name = if options.crate_name.is_empty() {
         ir.crate_name(ir.current_target())
             .map(|name| name.to_string())
@@ -111,6 +129,7 @@ pub fn generate_zng_spec(ir: &IR, options: &ZngOptions) -> Result<(ZngurSpec, Ve
         options.crate_name.clone()
     };
     let mut emitter = Emitter {
+        db,
         ir,
         declared: HashMap::new(),
         imported_types: HashMap::new(),
@@ -173,6 +192,7 @@ enum Position {
 }
 
 struct Emitter<'a, 'pb> {
+    db: &'a BindingsGenerator<'pb>,
     ir: &'a IR<'pb>,
     /// Records of the current target that are declared in the `.zng` file, and their C++ paths.
     declared: HashMap<ItemId, Vec<String>>,
@@ -411,12 +431,14 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
                     continue;
                 }
             };
+            // A shared reference to the `const` field, and a unique one to the non-`const` field,
+            // which matches crubit's `&mut`.
             let const_name = unique_name(&mut rust_names, rust_name(&name));
             ty.cpp_fields.push(ZngurCppField {
                 rust_name: (const_name != name).then_some(const_name),
                 name: name.clone(),
                 ty: zngur_ty.clone(),
-                mutability: Mutability::Not,
+                access: CppFieldAccess::Ref { unique: false, constness: CppConstness::Const },
             });
             if !field_ty.is_const() {
                 let mut_name = unique_name(&mut rust_names, rust_name(&format!("{name}_mut")));
@@ -424,12 +446,12 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
                     rust_name: Some(mut_name),
                     name,
                     ty: zngur_ty,
-                    mutability: Mutability::Mut,
+                    access: CppFieldAccess::Ref { unique: true, constness: CppConstness::Var },
                 });
             }
         }
 
-        let mut constructor_inputs: Vec<Vec<RustType>> = vec![];
+        let mut constructor_inputs: Vec<Vec<String>> = vec![];
         for child in record.children() {
             let func = match child {
                 Item::Func(func) => func,
@@ -461,15 +483,21 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
                     }
                     match self.constructor(func) {
                         Ok(constructor) => {
-                            // E.g. `T(const T&)` and `T(const T*)` would be the same Rust trait.
-                            if constructor_inputs.contains(&constructor.inputs) {
+                            // E.g. `T(const T&)` and `T(const T*)` would be the same Rust trait,
+                            // and so would `(&'a T)` and `(&'b T)`: compare the Rust types.
+                            let inputs: Vec<String> = constructor
+                                .inputs
+                                .iter()
+                                .map(|ty| ty.with_anonymous_lifetimes().to_string())
+                                .collect();
+                            if constructor_inputs.contains(&inputs) {
                                 self.skip(
                                     method_path,
                                     "another constructor has the same Rust parameter types",
                                 );
                                 continue;
                             }
-                            constructor_inputs.push(constructor.inputs.clone());
+                            constructor_inputs.push(inputs);
                             ty.cpp_constructors.push(constructor);
                         }
                         Err(err) => self.skip(method_path, format!("{err:#}")),
@@ -501,35 +529,51 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
             unreachable!("only called for named member functions")
         };
         self.check_func(func)?;
-        let mut params = func.params();
-        let receiver = match func.instance_method_metadata() {
-            Some(metadata) => {
-                if metadata.reference() == ReferenceQualification::RValue {
-                    bail!("`&&`-qualified member functions are not supported yet");
+        let lowered = self.lowered(func)?;
+        let mut sig = Signature::new(self.ir, func, &lowered, /* infer= */ false);
+        let mut params = 0..func.params().len();
+        let (receiver, receiver_constness, receiver_lifetime, raw_receiver) =
+            match func.instance_method_metadata() {
+                Some(metadata) => {
+                    if metadata.reference() == ReferenceQualification::RValue {
+                        bail!("`&&`-qualified member functions are not supported yet");
+                    }
+                    // The first parameter is `this`.
+                    params.start = 1;
+                    let constness =
+                        if metadata.is_const() { CppConstness::Const } else { CppConstness::Var };
+                    match self.this_lifetime(func, &lowered, &mut sig)? {
+                        // `&'a const self` (a `const` member function) or `&'a unique var self`.
+                        Some(lifetime) => {
+                            let m = match constness {
+                                CppConstness::Const => Mutability::Not,
+                                CppConstness::Var => Mutability::Mut,
+                            };
+                            (ZngurMethodReceiver::Ref(m), constness, Some(lifetime), None)
+                        }
+                        // A raw receiver: `const self&` or `self&`.
+                        None => (
+                            ZngurMethodReceiver::Ref(Mutability::Not),
+                            constness,
+                            None,
+                            Some(CppIndirection::Reference),
+                        ),
+                    }
                 }
-                // The first parameter is `this`.
-                params = &params[1..];
-                if metadata.is_const() {
-                    ZngurMethodReceiver::Ref(Mutability::Not)
-                } else {
-                    ZngurMethodReceiver::Ref(Mutability::Mut)
-                }
-            }
-            None => ZngurMethodReceiver::Static,
-        };
-        let inputs = params
-            .iter()
-            .map(|p| self.zngur_ty(p.type_(), Position::Value))
-            .collect::<Result<Vec<_>>>()?;
-        let output = self.zngur_ty(func.return_type(), Position::Value)?;
-        // `this` is a `CppRef`, which refers to a valid object, so it doesn't make the member
-        // function unsafe.
-        let is_safe = self.is_safe(func, &inputs);
+                None => (ZngurMethodReceiver::Static, CppConstness::Var, None, None),
+            };
+        let inputs = params.map(|i| self.sig_ty(&mut sig, Some(i))).collect::<Result<Vec<_>>>()?;
+        let output = self.sig_ty(&mut sig, None)?;
+        let is_safe = self.is_safe(func, raw_receiver.is_some(), &inputs);
         Ok(ZngurCppMethod {
             cpp_name: name.as_str().to_string(),
+            lifetimes: sig.declared,
             template_args: vec![],
             rust_name: None,
             receiver,
+            receiver_constness,
+            receiver_lifetime,
+            raw_receiver,
             inputs,
             output,
             is_safe,
@@ -538,12 +582,18 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
 
     fn constructor(&mut self, func: &Func<'pb>) -> Result<ZngurCppConstructor> {
         self.check_func(func)?;
+        let lowered = self.lowered(func)?;
+        // Like crubit, constructors infer the lifetimes of their references.
+        let mut sig = Signature::new(self.ir, func, &lowered, /* infer= */ true);
         // The first parameter is `this`.
-        let inputs = func.params()[1..]
-            .iter()
-            .map(|p| self.zngur_ty(p.type_(), Position::Value))
+        let inputs = (1..func.params().len())
+            .map(|i| self.sig_ty(&mut sig, Some(i)))
             .collect::<Result<Vec<_>>>()?;
-        Ok(ZngurCppConstructor { is_safe: self.is_safe(func, &inputs), inputs })
+        Ok(ZngurCppConstructor {
+            is_safe: self.is_safe(func, false, &inputs),
+            lifetimes: sig.declared,
+            inputs,
+        })
     }
 
     fn free_function(&mut self, path: &[String], func: &Func<'pb>) -> Result<ZngurCppFn> {
@@ -557,12 +607,12 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
         if let Some(segment) = path[..path.len() - 1].iter().find(|s| is_rust_keyword(s)) {
             bail!("`{segment}` is a Rust keyword, which zngur can't use as a module name");
         }
-        let inputs = func
-            .params()
-            .iter()
-            .map(|p| self.zngur_ty(p.type_(), Position::Value))
+        let lowered = self.lowered(func)?;
+        let mut sig = Signature::new(self.ir, func, &lowered, /* infer= */ false);
+        let inputs = (0..func.params().len())
+            .map(|i| self.sig_ty(&mut sig, Some(i)))
             .collect::<Result<Vec<_>>>()?;
-        let output = self.zngur_ty(func.return_type(), Position::Value)?;
+        let output = self.sig_ty(&mut sig, None)?;
         let cpp_name = name.as_str().to_string();
         let rust_name = rust_name(&cpp_name);
         Ok(ZngurCppFn {
@@ -570,7 +620,8 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
             template_args: vec![],
             rust_name: (rust_name != cpp_name).then_some(rust_name),
             cpp_name,
-            is_safe: self.is_safe(func, &inputs),
+            lifetimes: sig.declared,
+            is_safe: self.is_safe(func, false, &inputs),
             inputs,
             output,
         })
@@ -587,11 +638,138 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
         Ok(())
     }
 
-    /// Whether a function can be `safe`: it isn't annotated as unsafe, and takes no C++ pointers,
-    /// which may be null or invalid. (C++ references, including `this`, are `CppRef`s, which refer
-    /// to valid objects.)
-    fn is_safe(&self, func: &Func<'pb>, inputs: &[RustType]) -> bool {
-        func.safety_annotation() != SafetyAnnotation::Unsafe && !inputs.iter().any(contains_cpp_ptr)
+    /// Whether the owning target of `func` has `feature`.
+    fn has_feature(&self, func: &Func<'pb>, feature: CrubitFeature) -> bool {
+        self.ir.target_crubit_features(func.owning_target()).contains(feature)
+    }
+
+    /// `func` with the default lifetimes of the `assume_lifetimes` feature filled in, if its
+    /// target has the feature (`None` otherwise).
+    fn lowered(&self, func: &Func<'pb>) -> Result<Option<Func<'pb>>> {
+        if !self.has_feature(func, CrubitFeature::AssumeLifetimes) {
+            return Ok(None);
+        }
+        lifetime_defaults_transform_func(self.db, func)
+            .map(Some)
+            .map_err(|err| anyhow!("can't assign lifetimes to the references: {err:#}"))
+    }
+
+    /// The lifetime of `this` (`params[0]`), if it has lifetime information: from the
+    /// `assume_lifetimes` defaults, an explicit annotation, or `assume_this_lifetimes` (like
+    /// crubit). `None` makes the receiver raw.
+    fn this_lifetime(
+        &self,
+        func: &Func<'pb>,
+        lowered: &Option<Func<'pb>>,
+        sig: &mut Signature,
+    ) -> Result<Option<Lifetime>> {
+        let CcTypeVariant::Pointer(this) = func.params()[0].type_().variant() else {
+            bail!("the `this` parameter isn't a pointer");
+        };
+        let name = match lowered {
+            Some(lowered) => match lowered.params()[0].type_().explicit_lifetimes() {
+                [] => LifetimeInfo::Elided,
+                [name] if name.as_ref() == "unknown" => LifetimeInfo::None,
+                [name] => LifetimeInfo::Named(name.to_string()),
+                _ => bail!("`this` may only have one lifetime"),
+            },
+            None => match this.lifetime() {
+                Some(id) => LifetimeInfo::Named(self.lifetime_name(id)?),
+                None if self.has_feature(func, CrubitFeature::AssumeThisLifetimes) => {
+                    LifetimeInfo::Elided
+                }
+                None => LifetimeInfo::None,
+            },
+        };
+        Ok(sig.resolve(name, /* is_return= */ false))
+    }
+
+    fn lifetime_name(&self, id: ir::LifetimeId) -> Result<String> {
+        // crubit's `STATIC_LIFETIME_ID`, for `$static`, which isn't in the IR's lifetimes.
+        if id == ir::LifetimeId(-1) {
+            return Ok("static".to_string());
+        }
+        Ok(self
+            .ir
+            .get_lifetime(id)
+            .ok_or_else(|| anyhow!("no known lifetime with id {id:?}"))?
+            .name()
+            .to_string())
+    }
+
+    /// The zngur type of the parameter `param` of the function of `sig` (its return type if
+    /// `None`), where C++ references with lifetime information are references to C++ objects.
+    fn sig_ty(&mut self, sig: &mut Signature, param: Option<usize>) -> Result<RustType> {
+        let (ty, lowered) = match param {
+            Some(i) => (sig.func.params()[i].type_(), sig.lowered.map(|f| f.params()[i].type_())),
+            None => (sig.func.return_type(), sig.lowered.map(|f| f.return_type())),
+        };
+        // `sig` borrows the IR, not `self`, so the types outlive this call.
+        let (ty, lowered) = (ty.clone(), lowered.cloned());
+        reject_lifetime_params(&ty)?;
+        if let Some(lowered) = &lowered {
+            reject_lifetime_params(lowered)?;
+        }
+        let CcTypeVariant::Pointer(pointer) = ty.variant() else {
+            return self.zngur_ty(&ty, Position::Value);
+        };
+        if pointer.kind() != PointerTypeKind::LValueRef {
+            return self.zngur_ty(&ty, Position::Value);
+        }
+        let pointee = pointer.pointee_type();
+        if pointee.is_unit_type() {
+            bail!("`void` pointers are not supported yet");
+        }
+        let info = match &lowered {
+            // `assume_lifetimes`: the defaults are on the lowered type, which is a pointer if no
+            // lifetime could be assigned.
+            Some(lowered) => match lowered.variant() {
+                CcTypeVariant::Pointer(p) if p.kind() == PointerTypeKind::LValueRef => {
+                    match lowered.explicit_lifetimes() {
+                        [] => LifetimeInfo::Elided,
+                        [name] if name.as_ref() == "unknown" => LifetimeInfo::None,
+                        [name] => LifetimeInfo::Named(name.to_string()),
+                        _ => bail!("references may only have one lifetime"),
+                    }
+                }
+                _ => LifetimeInfo::None,
+            },
+            None => match pointer.lifetime() {
+                Some(id) => LifetimeInfo::Named(self.lifetime_name(id)?),
+                None if sig.infer => LifetimeInfo::Elided,
+                None => LifetimeInfo::None,
+            },
+        };
+        let pointee_ty = self.zngur_ty(pointee, Position::Exact)?;
+        Ok(match sig.resolve(info, /* is_return= */ param.is_none()) {
+            // A reference to a C++ object: `&'a const T`, or `&'a unique var T` (crubit's `&mut`).
+            Some(lifetime) => {
+                let (m, constness) = if pointee.is_const() {
+                    (Mutability::Not, CppConstness::Const)
+                } else {
+                    (Mutability::Mut, CppConstness::Var)
+                };
+                RustType::Ref(
+                    m,
+                    Some(lifetime),
+                    Box::new(RustType::cpp_object(constness, pointee_ty)),
+                )
+            }
+            // A raw `const T&` / `T&`.
+            None => {
+                let m = if pointee.is_const() { Mutability::Not } else { Mutability::Mut };
+                RustType::cpp_ptr(m, CppIndirection::Reference, pointee_ty)
+            }
+        })
+    }
+
+    /// Whether a function can be `safe`: it isn't annotated as unsafe, and takes no raw pointers
+    /// (a raw receiver, C++ pointers, or C++ references without lifetimes), which may be null or
+    /// invalid. (References to C++ objects refer to valid objects.)
+    fn is_safe(&self, func: &Func<'pb>, raw_receiver: bool, inputs: &[RustType]) -> bool {
+        func.safety_annotation() != SafetyAnnotation::Unsafe
+            && !raw_receiver
+            && !inputs.iter().any(contains_raw_ptr)
     }
 
     /// Converts a C++ type to a zngur type. Fails if zngur can't express the type, or it isn't
@@ -650,10 +828,11 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
                     bail!("pointers to pointers are not supported yet");
                 }
                 let mutability = if pointee.is_const() { Mutability::Not } else { Mutability::Mut };
-                Ok(RustType::CppPtr(
+                // References in signatures are handled by `sig_ty`; others are raw.
+                Ok(RustType::cpp_ptr(
                     mutability,
                     indirection,
-                    Box::new(self.zngur_ty(pointee, Position::Exact)?),
+                    self.zngur_ty(pointee, Position::Exact)?,
                 ))
             }
             CcTypeVariant::FuncPointer { .. } => bail!("function pointers are not supported yet"),
@@ -750,22 +929,143 @@ fn unique_ptr_type(element: RustType, size_align: ir::SizeAlign) -> ZngurType {
         trivially_relocatable: TriviallyRelocatable::Checked,
         cpp_methods: vec![ZngurCppMethod {
             cpp_name: "get".to_string(),
+            lifetimes: vec![Lifetime("a".to_string())],
             template_args: vec![],
             rust_name: None,
             receiver: ZngurMethodReceiver::Ref(Mutability::Not),
+            receiver_constness: CppConstness::Const,
+            receiver_lifetime: Some(Lifetime("a".to_string())),
+            raw_receiver: None,
             inputs: vec![],
-            output: RustType::CppPtr(Mutability::Mut, CppIndirection::Pointer, Box::new(element)),
+            output: RustType::cpp_ptr(Mutability::Mut, CppIndirection::Pointer, element),
             is_safe: true,
         }],
         ..empty_zngur_type(ty)
     }
 }
 
-/// Whether `ty` is or contains a C++ pointer (e.g. `T*` or `T*&`).
-fn contains_cpp_ptr(ty: &RustType) -> bool {
+/// What crubit knows about the lifetime of a C++ reference.
+enum LifetimeInfo {
+    /// It has no lifetime information, so it's a raw reference.
+    None,
+    /// It's a reference whose lifetime is elided (e.g. inferred for a constructor).
+    Elided,
+    /// It's a reference with this lifetime (without the `'`).
+    Named(String),
+}
+
+/// The lifetimes of a function's signature, which are always named and declared on the function,
+/// so that the `.zng` file never relies on elision.
+struct Signature<'s, 'pb> {
+    func: &'s Func<'pb>,
+    /// `func` with the `assume_lifetimes` defaults, if they apply.
+    lowered: Option<&'s Func<'pb>>,
+    /// Whether references without annotations get lifetimes (constructors).
+    infer: bool,
+    /// The declared lifetimes, in order of first use.
+    declared: Vec<Lifetime>,
+    /// The lifetime names that the signature already uses, which fresh names avoid.
+    reserved: HashSet<String>,
+    next_fresh: usize,
+    /// Fresh names for the lifetimes that crubit makes up (`__this`, `__param_0`, ...), which
+    /// read better in the `.zng` file.
+    renamed: HashMap<String, String>,
+}
+
+impl<'s, 'pb> Signature<'s, 'pb> {
+    fn new(ir: &IR<'pb>, func: &'s Func<'pb>, lowered: &'s Option<Func<'pb>>, infer: bool) -> Self {
+        let mut reserved = HashSet::new();
+        let funcs = std::iter::once(func).chain(lowered.as_ref());
+        for f in funcs {
+            for ty in f.params().iter().map(|p| p.type_()).chain([f.return_type()]) {
+                collect_lifetime_names(ir, ty, &mut reserved);
+            }
+        }
+        Signature {
+            func,
+            lowered: lowered.as_ref(),
+            infer,
+            declared: vec![],
+            reserved,
+            next_fresh: 0,
+            renamed: HashMap::new(),
+        }
+    }
+
+    /// The lifetime of a reference with lifetime information `info`, declaring it on the function,
+    /// or `None` if the reference is raw. An elided lifetime gets a fresh name, except in the
+    /// return type, where it can't be named, so the reference is raw.
+    fn resolve(&mut self, info: LifetimeInfo, is_return: bool) -> Option<Lifetime> {
+        let name = match info {
+            LifetimeInfo::None => return None,
+            LifetimeInfo::Elided if is_return => return None,
+            LifetimeInfo::Elided => self.fresh(),
+            LifetimeInfo::Named(name) if name.starts_with("__") => match self.renamed.get(&name) {
+                Some(renamed) => renamed.clone(),
+                None => {
+                    let renamed = self.fresh();
+                    self.renamed.insert(name, renamed.clone());
+                    renamed
+                }
+            },
+            LifetimeInfo::Named(name) => name,
+        };
+        let lifetime = Lifetime(name);
+        if !lifetime.is_builtin() && !self.declared.contains(&lifetime) {
+            self.declared.push(lifetime.clone());
+        }
+        Some(lifetime)
+    }
+
+    /// A lifetime name that the signature doesn't use: `a`, `b`, ..., then `a1`, `b1`, ....
+    fn fresh(&mut self) -> String {
+        loop {
+            let n = self.next_fresh;
+            self.next_fresh += 1;
+            let letter = char::from(b'a' + (n % 26) as u8);
+            let name = match n / 26 {
+                0 => letter.to_string(),
+                round => format!("{letter}{round}"),
+            };
+            if self.reserved.insert(name.clone()) {
+                return name;
+            }
+        }
+    }
+}
+
+/// Adds the lifetime names that `ty` uses (crubit's explicit lifetimes, and annotated ones) to
+/// `names`.
+fn collect_lifetime_names(ir: &IR<'_>, ty: &CcType, names: &mut HashSet<String>) {
+    names.extend(ty.explicit_lifetimes().iter().map(|name| name.to_string()));
+    if let CcTypeVariant::Pointer(pointer) = ty.variant() {
+        if let Some(name) = pointer.lifetime().and_then(|id| ir.get_lifetime(id)) {
+            names.insert(name.name().to_string());
+        }
+        collect_lifetime_names(ir, pointer.pointee_type(), names);
+    }
+}
+
+/// Fails for C++ types with lifetime parameters, which zngur doesn't support (e.g. views
+/// annotated with lifetimes), anywhere in `ty` (as lowered by `assume_lifetimes`).
+fn reject_lifetime_params(ty: &CcType) -> Result<()> {
+    match ty.variant() {
+        CcTypeVariant::Decl { .. } if !ty.explicit_lifetimes().is_empty() => {
+            bail!("C++ types with lifetime parameters are not supported by zngur yet")
+        }
+        CcTypeVariant::Pointer(pointer) => reject_lifetime_params(pointer.pointee_type()),
+        _ => Ok(()),
+    }
+}
+
+/// Whether `ty` is or contains a raw pointer: a C++ pointer or a C++ reference without a lifetime
+/// (e.g. `T*`, `const T&` or `&'a unique var T*`). zngur warns about `safe` functions that take one.
+fn contains_raw_ptr(ty: &RustType) -> bool {
     match ty {
-        RustType::CppPtr(_, CppIndirection::Pointer, _) => true,
-        RustType::CppPtr(_, CppIndirection::Reference, inner) => contains_cpp_ptr(inner),
+        RustType::CppPtr(..) | RustType::Raw(..) => true,
+        RustType::Ref(_, _, inner) | RustType::CppConst(inner) | RustType::CppVar(inner) => {
+            contains_raw_ptr(inner)
+        }
         _ => false,
     }
 }
@@ -871,6 +1171,7 @@ where
 fn empty_zngur_type(ty: RustType) -> ZngurType {
     ZngurType {
         ty,
+        lifetimes: vec![],
         layout: None,
         trivially_relocatable: TriviallyRelocatable::No,
         wellknown_traits: vec![],

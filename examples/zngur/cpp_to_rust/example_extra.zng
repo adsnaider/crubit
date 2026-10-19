@@ -3,7 +3,7 @@
 
 // A snake_case name for `Rect::Area`.
 type c++::shapes::Rect {
-    safe fn Area() const -> i32 as area;
+    safe fn Area<'a>(&'a const self) -> i32 as area;
 }
 
 // `std::make_unique<Canvas>()`, for Rust to create a `Canvas`, which it can only

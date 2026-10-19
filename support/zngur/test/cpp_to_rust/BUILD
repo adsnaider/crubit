@@ -11,6 +11,8 @@ cc_library(
     testonly = True,
     srcs = ["geo.cc"],
     hdrs = ["geo.h"],
+    # C++ references with default lifetimes are references to C++ objects in the `.zng` file.
+    aspect_hints = ["//features:assume_lifetimes"],
 )
 
 cc_zngur_bindings(
@@ -23,6 +25,7 @@ cc_library(
     name = "shapes",
     testonly = True,
     hdrs = ["shapes.h"],
+    aspect_hints = ["//features:assume_lifetimes"],
     deps = [":geo"],
 )
 

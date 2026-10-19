@@ -15,10 +15,10 @@ type ::uses_structs::Line {
     field to (offset = 8, type = ::structs::Point);
 
     fn new(::structs::Point, ::structs::Point) -> ::uses_structs::Line as new_;
-    fn length2(&self) -> i32;
+    fn length2<'a>(&'a self) -> i32;
 }
 
 mod ::uses_structs {
     fn origin() -> ::structs::Point;
-    fn x_of(&::structs::Point) -> i32;
+    fn x_of<'a>(&'a ::structs::Point) -> i32;
 }

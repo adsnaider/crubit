@@ -21,38 +21,38 @@ type c++::shapes::Point {
     #layout(size = 8, align = 4);
     #unsafe(trivially_relocatable);
 
-    field const x (type = i32);
-    field x (type = i32) as x_mut;
-    field const y (type = i32);
-    field y (type = i32) as y_mut;
+    field &const x (type = i32);
+    field &unique var x (type = i32) as x_mut;
+    field &const y (type = i32);
+    field &unique var y (type = i32) as y_mut;
 
-    safe constructor(const c++::shapes::Point&);
+    safe constructor<'a>(&'a const c++::shapes::Point);
     safe constructor();
     safe constructor(i32, i32);
 
-    safe fn Scale(i32);
-    safe fn Scale(i32, i32) as Scale_2;
+    safe fn Scale<'a>(&'a unique var self, i32);
+    safe fn Scale<'a>(&'a unique var self, i32, i32) as Scale_2;
 }
 
 type c++::shapes::Polygon {
     #layout(size = 24, align = 8);
 
-    safe fn Add(const c++::shapes::Point&);
-    safe fn Size() const -> i32;
+    safe fn Add<'a, 'point>(&'a unique var self, &'point const c++::shapes::Point);
+    safe fn Size<'a>(&'a const self) -> i32;
 }
 
 type c++::shapes::Canvas {
     #layout(size = 16, align = 8);
 
-    safe fn Draw(const c++::shapes::Point&);
-    safe fn Count() const -> i32;
+    safe fn Draw<'a, 'point>(&'a unique var self, &'point const c++::shapes::Point);
+    safe fn Count<'a>(&'a const self) -> i32;
 }
 
 type c++::std::unique_ptr<c++::shapes::Polygon> {
     #layout(size = 8, align = 8);
     #trivially_relocatable;
 
-    safe fn get() const -> c++::shapes::Polygon*;
+    safe fn get<'a>(&'a const self) -> c++::shapes::Polygon*;
 }
 
 mod c++::shapes {

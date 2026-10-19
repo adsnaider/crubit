@@ -18,30 +18,30 @@ type c++::shapes::Rect {
     #layout(size = 16, align = 4);
     #unsafe(trivially_relocatable);
 
-    field const min (type = c++::geometry::Point);
-    field min (type = c++::geometry::Point) as min_mut;
-    field const max (type = c++::geometry::Point);
-    field max (type = c++::geometry::Point) as max_mut;
+    field &const min (type = c++::geometry::Point);
+    field &unique var min (type = c++::geometry::Point) as min_mut;
+    field &const max (type = c++::geometry::Point);
+    field &unique var max (type = c++::geometry::Point) as max_mut;
 
-    safe constructor(const c++::shapes::Rect&);
-    safe constructor(const c++::geometry::Point&, const c++::geometry::Point&);
+    safe constructor<'a>(&'a const c++::shapes::Rect);
+    safe constructor<'min, 'max>(&'min const c++::geometry::Point, &'max const c++::geometry::Point);
 
-    safe fn Area() const -> i32;
-    safe fn Translate(i32, i32);
+    safe fn Area<'a>(&'a const self) -> i32;
+    safe fn Translate<'a>(&'a unique var self, i32, i32);
 }
 
 type c++::shapes::Canvas {
     #layout(size = 16, align = 8);
 
-    safe fn Draw(const c++::shapes::Rect&);
-    safe fn TotalArea() const -> i32;
+    safe fn Draw<'a, 'rect>(&'a unique var self, &'rect const c++::shapes::Rect);
+    safe fn TotalArea<'a>(&'a const self) -> i32;
 }
 
 type c++::std::unique_ptr<c++::shapes::Rect> {
     #layout(size = 8, align = 8);
     #trivially_relocatable;
 
-    safe fn get() const -> c++::shapes::Rect*;
+    safe fn get<'a>(&'a const self) -> c++::shapes::Rect*;
 }
 
 mod c++::shapes {

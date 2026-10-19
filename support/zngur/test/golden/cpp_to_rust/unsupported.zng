@@ -11,7 +11,7 @@
 // skipped: unsupported::Color: enums are not supported yet
 // skipped: unsupported::Difference: `ptrdiff_t` is not supported by zngur
 // skipped: unsupported::Favorite: enums are not supported yet
-// skipped: unsupported::MakeBox: Unsupported type 'unsupported::Box<int32_t>': Failed to complete template specialization type Box<int32_t>: template belongs to target //support/zngur/test/golden/cpp_to_rust:unsupported, which does not support Crubit.
+// skipped: unsupported::MakeBox: class template specialization `unsupported::Box<int>` is not supported yet
 // skipped: unsupported::MakeInt: `std::unique_ptr<i32>` isn't declared in an imported `.zng` file (instantiations belong in the file of their element type, or in `cpp_std.zng` for builtins)
 // skipped: unsupported::Outer::Nested: nested types are not supported yet
 // skipped: unsupported::Outer::operator+=: operators are not supported yet
@@ -33,9 +33,9 @@ type c++::unsupported::Outer {
     #layout(size = 4, align = 4);
     #unsafe(trivially_relocatable);
 
-    field const value (type = i32);
-    field value (type = i32) as value_mut;
+    field &const value (type = i32);
+    field &unique var value (type = i32) as value_mut;
 
     safe constructor();
-    safe constructor(const c++::unsupported::Outer&);
+    safe constructor<'a>(&'a const c++::unsupported::Outer);
 }

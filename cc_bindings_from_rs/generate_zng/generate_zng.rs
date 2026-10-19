@@ -45,8 +45,8 @@ use std::fmt::Write as _;
 use std::path::PathBuf;
 use zngur_def::printing::IDLPrinter;
 use zngur_def::{
-    LayoutPolicy, ModuleImport, Mutability, PrimitiveRustType, RustPathAndGenerics, RustType,
-    TriviallyRelocatable, ZngurField, ZngurFn, ZngurMethod, ZngurMethodDetails,
+    LayoutPolicy, Lifetime, ModuleImport, Mutability, PrimitiveRustType, RustPathAndGenerics,
+    RustType, TriviallyRelocatable, ZngurField, ZngurFn, ZngurMethod, ZngurMethodDetails,
     ZngurMethodReceiver, ZngurSpec, ZngurType, ZngurWellknownTrait,
 };
 
@@ -141,6 +141,9 @@ pub fn generate_zng_spec(db: &BindingsGenerator, options: &ZngOptions) -> Result
         uses_bool: false,
         uses_char: false,
         uses_str: false,
+        fn_lifetimes: vec![],
+        fn_reserved: HashSet::new(),
+        fn_renamed: HashMap::new(),
     };
     let mut spec = ZngurSpec::default();
     for import in &options.imports {
@@ -176,6 +179,12 @@ struct Emitter<'a, 'tcx> {
     uses_char: bool,
     /// Whether `str` is used, and so needs to be declared.
     uses_str: bool,
+    /// The lifetimes of the function being described, in order of first use.
+    fn_lifetimes: Vec<Lifetime>,
+    /// The named lifetimes of the function being described, which fresh names avoid.
+    fn_reserved: HashSet<String>,
+    /// Fresh names for its anonymous lifetimes (which rustc deanonymizes as `'__anon1`, ...).
+    fn_renamed: HashMap<String, String>,
 }
 
 impl<'a, 'tcx> Emitter<'a, 'tcx> {
@@ -506,8 +515,10 @@ impl<'a, 'tcx> Emitter<'a, 'tcx> {
             methods.push(ZngurMethodDetails {
                 data: ZngurMethod {
                     name: name.to_string(),
+                    lifetimes: vec![],
                     generics: vec![],
                     receiver,
+                    receiver_lifetime: None,
                     inputs: vec![],
                     output: ty.clone(),
                     is_safe: true,
@@ -533,25 +544,29 @@ impl<'a, 'tcx> Emitter<'a, 'tcx> {
     fn zngur_method(&mut self, item: &ty::AssocItem, self_ty: Ty<'tcx>) -> Result<ZngurMethod> {
         let tcx = self.db.tcx();
         let sig = self.fn_sig(item.def_id)?;
+        self.begin_fn(&sig);
         let mut inputs = sig.inputs().iter().copied();
-        let receiver = if item.is_method() {
+        let (receiver, receiver_lifetime) = if item.is_method() {
             let self_param = inputs.next().expect("methods have a `self` parameter");
             match *self_param.kind() {
-                _ if self_param == self_ty => ZngurMethodReceiver::Move,
-                ty::Ref(_, pointee, mutbl) if pointee == self_ty => {
-                    ZngurMethodReceiver::Ref(mutability(mutbl.is_mut()))
-                }
+                _ if self_param == self_ty => (ZngurMethodReceiver::Move, None),
+                ty::Ref(region, pointee, mutbl) if pointee == self_ty => (
+                    ZngurMethodReceiver::Ref(mutability(mutbl.is_mut())),
+                    Some(self.lifetime(region)?),
+                ),
                 _ => bail!("`self: {self_param}` receivers are not supported yet"),
             }
         } else {
-            ZngurMethodReceiver::Static
+            (ZngurMethodReceiver::Static, None)
         };
         let inputs = inputs.map(|ty| self.zngur_ty(ty)).collect::<Result<Vec<_>>>()?;
         let output = self.zngur_ty(sig.output())?;
         Ok(ZngurMethod {
             name: tcx.item_name(item.def_id).to_string(),
+            lifetimes: std::mem::take(&mut self.fn_lifetimes),
             generics: vec![],
             receiver,
+            receiver_lifetime,
             inputs,
             output,
             // zngur's parser sets this for every Rust method; it only matters for C++ methods.
@@ -561,10 +576,65 @@ impl<'a, 'tcx> Emitter<'a, 'tcx> {
 
     fn zngur_fn(&mut self, path: &[String], def_id: DefId) -> Result<ZngurFn> {
         let sig = self.fn_sig(def_id)?;
+        self.begin_fn(&sig);
         let inputs =
             sig.inputs().iter().map(|ty| self.zngur_ty(*ty)).collect::<Result<Vec<_>>>()?;
         let output = self.zngur_ty(sig.output())?;
-        Ok(ZngurFn { path: rust_path(path), inputs, output })
+        Ok(ZngurFn {
+            path: rust_path(path),
+            lifetimes: std::mem::take(&mut self.fn_lifetimes),
+            inputs,
+            output,
+        })
+    }
+
+    /// Starts describing a function with the signature `sig`, whose lifetimes are all named.
+    fn begin_fn(&mut self, sig: &ty::FnSig<'tcx>) {
+        let tcx = self.db.tcx();
+        self.fn_lifetimes.clear();
+        self.fn_renamed.clear();
+        self.fn_reserved = sig
+            .inputs_and_output
+            .iter()
+            .flat_map(|ty| ty.walk())
+            .filter_map(|arg| arg.as_region()?.get_name(tcx))
+            .map(|name| name.as_str().trim_start_matches('\'').to_string())
+            .collect();
+    }
+
+    /// The lifetime of a reference in a function's signature, which it adds to the function's
+    /// lifetimes. Anonymous lifetimes (deanonymized as `'__anon1`, ... by
+    /// `liberate_and_deanonymize_late_bound_regions`) get fresh names: `'a`, `'b`, ....
+    fn lifetime(&mut self, region: ty::Region<'tcx>) -> Result<Lifetime> {
+        let name = region
+            .get_name(self.db.tcx())
+            .ok_or_else(|| anyhow!("lifetime `{region}` is not supported"))?;
+        let name = name.as_str();
+        let mut name = name.strip_prefix('\'').unwrap_or(name).to_string();
+        if name.starts_with("__anon") {
+            name = match self.fn_renamed.get(&name) {
+                Some(renamed) => renamed.clone(),
+                None => {
+                    let renamed = (0..)
+                        .map(|n: usize| {
+                            let letter = char::from(b'a' + (n % 26) as u8);
+                            match n / 26 {
+                                0 => letter.to_string(),
+                                round => format!("{letter}{round}"),
+                            }
+                        })
+                        .find(|candidate| self.fn_reserved.insert(candidate.clone()))
+                        .expect("there are infinitely many names");
+                    self.fn_renamed.insert(name, renamed.clone());
+                    renamed
+                }
+            };
+        }
+        let lifetime = Lifetime(name);
+        if !lifetime.is_builtin() && !self.fn_lifetimes.contains(&lifetime) {
+            self.fn_lifetimes.push(lifetime.clone());
+        }
+        Ok(lifetime)
     }
 
     /// Returns the signature of a function, or an error if zngur can't express the function.
@@ -624,8 +694,13 @@ impl<'a, 'tcx> Emitter<'a, 'tcx> {
             },
             ty::Tuple(tys) if tys.is_empty() => Ok(RustType::UNIT),
             // `str` is only usable behind a reference.
-            ty::Ref(_, pointee, mutbl) => {
-                Ok(RustType::Ref(mutability(mutbl.is_mut()), Box::new(self.zngur_ty(pointee)?)))
+            ty::Ref(region, pointee, mutbl) => {
+                let lifetime = self.lifetime(region)?;
+                Ok(RustType::Ref(
+                    mutability(mutbl.is_mut()),
+                    Some(lifetime),
+                    Box::new(self.zngur_ty(pointee)?),
+                ))
             }
             ty::RawPtr(pointee, mutbl) => {
                 Ok(RustType::Raw(mutability(mutbl.is_mut()), Box::new(self.zngur_ty(pointee)?)))
@@ -680,8 +755,10 @@ fn str_decl() -> ZngurType {
     let method = |name: &str, output| ZngurMethodDetails {
         data: ZngurMethod {
             name: name.to_string(),
+            lifetimes: vec![],
             generics: vec![],
             receiver: ZngurMethodReceiver::Ref(Mutability::Not),
+            receiver_lifetime: None,
             inputs: vec![],
             output,
             is_safe: true,
@@ -720,12 +797,18 @@ fn mutability(is_mut: bool) -> Mutability {
 }
 
 fn rust_path(path: &[String]) -> RustPathAndGenerics {
-    RustPathAndGenerics { path: path.to_vec(), generics: vec![], named_generics: vec![] }
+    RustPathAndGenerics {
+        path: path.to_vec(),
+        lifetimes: vec![],
+        generics: vec![],
+        named_generics: vec![],
+    }
 }
 
 fn empty_zngur_type() -> ZngurType {
     ZngurType {
         ty: RustType::UNIT,
+        lifetimes: vec![],
         layout: None,
         trivially_relocatable: TriviallyRelocatable::No,
         wellknown_traits: vec![],

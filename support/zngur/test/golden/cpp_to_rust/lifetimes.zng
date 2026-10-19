@@ -1,0 +1,33 @@
+// Part of the Crubit project, under the Apache License v2.0 with LLVM
+// Exceptions. See /LICENSE for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+
+// Automatically @generated zngur IDL for the following C++ target:
+// //support/zngur/test/golden/cpp_to_rust:lifetimes
+
+import "../../../cpp_std.zng";
+
+#crate lifetimes_zngur
+
+#cpp_additional_includes r#"
+#include "support/zngur/test/golden/cpp_to_rust/lifetimes.h"
+"#
+
+type c++::lifetimes::Holder {
+    #layout(size = 4, align = 4);
+    #unsafe(trivially_relocatable);
+
+    field &const value (type = i32);
+    field &unique var value (type = i32) as value_mut;
+
+    safe constructor();
+    safe constructor<'a>(&'a const c++::lifetimes::Holder);
+}
+
+mod c++::lifetimes {
+    safe fn Value<'a>(&'a const c++::lifetimes::Holder) -> &'a const i32;
+    safe fn ValueMut<'a>(&'a unique var c++::lifetimes::Holder) -> &'a unique var i32;
+    safe fn Pick<'a, 'b>(&'a const c++::lifetimes::Holder, &'b const c++::lifetimes::Holder) -> &'a const c++::lifetimes::Holder;
+    safe fn Default() -> &'static const c++::lifetimes::Holder;
+    unsafe fn Reset(c++::lifetimes::Holder&);
+}

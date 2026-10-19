@@ -4,6 +4,7 @@
 
 use arc_anyhow::Context;
 use database::code_snippet::Bindings;
+use database::db::Interner;
 use error_report::{ErrorReport, ErrorReporting, FatalErrors, SourceLanguage};
 use generate_bindings::generate_bindings as inner_generate_bindings;
 use generate_bindings_rust_proto::{GenerateBindingsRequest, GenerateBindingsResponseMut};
@@ -81,9 +82,23 @@ pub fn generate_bindings(
             merges: zng.merges().iter().map(|merge| relative(&to_string(merge))).collect(),
             is_golden_test,
         };
-        catch_unwind(AssertUnwindSafe(|| match generate_zng::generate_zng(&ir, &options) {
-            Ok(zng) => response.set_zng(zng),
-            Err(err) => response.set_fatal_errors(format!("{err:#}")),
+        catch_unwind(AssertUnwindSafe(|| {
+            // crubit's bindings database, for the lifetime rules of the target's features. Errors
+            // are reported in the `.zng` file instead.
+            let interner = Interner::default();
+            let fatal_errors = FatalErrors::new();
+            let db = generate_bindings::new_database(
+                &ir,
+                &error_report::IgnoreErrors,
+                &fatal_errors,
+                is_golden_test,
+                /* kythe_annotations= */ false,
+                &interner,
+            );
+            match generate_zng::generate_zng(&db, &options) {
+                Ok(zng) => response.set_zng(zng),
+                Err(err) => response.set_fatal_errors(format!("{err:#}")),
+            }
         }))
         .unwrap_or_else(|_| process::abort());
         return;

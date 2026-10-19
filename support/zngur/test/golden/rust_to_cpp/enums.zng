@@ -16,7 +16,7 @@ type ::enums::Shape {
     #layout(size = 24, align = 8);
 
     fn circle(f64) -> ::enums::Shape;
-    fn area(&self) -> f64;
+    fn area<'a>(&'a self) -> f64;
 }
 
 mod ::enums {
