@@ -20,7 +20,7 @@ fn main() {
     // SAFETY: `triangle` owns a `Polygon`, which lives as long as it does, and nothing else refers
     // to it meanwhile.
     let triangle = unsafe { triangle.get().as_mut() }.expect("null");
-    triangle.Add(p.as_const());
+    triangle.Add(&p);
     println!("[Rust] the polygon has {} points", triangle.Size());
 
     // Added by hand (shapes_extra.zng, #1): `std::vector<Point>`, and the member
@@ -31,7 +31,7 @@ fn main() {
         println!("[Rust] point {i}: ({}, {})", point.x().get(), point.y().get());
     }
     let mut reversed = triangle.Reversed();
-    reversed.push_back(Point::build((7, 7)).as_const());
+    reversed.push_back(&Point::build((7, 7)));
     println!("[Rust] reversed, plus one more: {} points", reversed.size());
 
     // Added by hand (shapes_extra.zng, #2): `std::make_unique<Canvas>()`.

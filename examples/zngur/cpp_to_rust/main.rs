@@ -14,8 +14,8 @@ fn main() {
     // `Point` and `Rect` are held by value in Rust.
     let min = Point::build((1, 2));
     let max = Point::build((4, 6));
-    // A C++ `const Point&` is a `&Point<Const>`.
-    let mut rect = Rect::build((min.as_const(), max.as_const()));
+    // A C++ `const Point&` parameter takes a `&Point` (or a `&Point<Const>`).
+    let mut rect = Rect::build((&min, &max));
 
     // Member functions are methods: `&self` for `const` member functions, and `&mut self` for
     // the others, which crubit takes as unique references.
@@ -34,8 +34,8 @@ fn main() {
     // refers to the canvas meanwhile.
     let (square, canvas) =
         unsafe { (square.get().as_ref().expect("null"), canvas.get().as_mut().expect("null")) };
-    canvas.Draw(square.as_const());
-    canvas.Draw(rect.as_const());
+    canvas.Draw(square);
+    canvas.Draw(&rect);
     println!("total area = {}", canvas.TotalArea());
     assert_eq!(canvas.TotalArea(), 21);
 }

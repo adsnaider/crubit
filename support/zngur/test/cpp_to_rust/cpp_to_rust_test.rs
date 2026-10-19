@@ -49,7 +49,7 @@ fn test_reference_only_type() {
 fn test_type_of_dependency() {
     let from = Point::build((1, 1));
     let to = Point::build((4, 5));
-    let segment = Segment::build((from.as_const(), to.as_const()));
+    let segment = Segment::build((&from, &to));
     assert_eq!(segment.Length2(), 25);
     assert_eq!(segment.to().Norm2(), 41);
     assert_eq!(UnitSegment().Length2(), 1);
