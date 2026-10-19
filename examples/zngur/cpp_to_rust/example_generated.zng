@@ -23,8 +23,8 @@ type c++::shapes::Rect {
     field &const max (type = c++::geometry::Point);
     field &unique var max (type = c++::geometry::Point) as max_mut;
 
-    safe constructor<'__param_0>(&'__param_0 const c++::shapes::Rect);
-    safe constructor<'min, 'max>(&'min const c++::geometry::Point, &'max const c++::geometry::Point);
+    safe constructor<'__param_0>(&'__param_0 const c++::shapes::Rect) as new_copy;
+    safe constructor<'min, 'max>(&'min const c++::geometry::Point, &'max const c++::geometry::Point) as new;
 
     safe fn Area<'__this>(&'__this const self) -> i32;
     safe fn Translate<'__this>(&'__this unique var self, i32, i32);

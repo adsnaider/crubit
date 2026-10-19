@@ -95,7 +95,7 @@ rust_binary(
     deps = [
         ":geometry_zngur_rs",
         "//support/zngur:cpp_std_rs",  # For `std::unique_ptr`.
-        "//support/zngur:zngur_lib",  # For traits like `ZngCppConstruct`.
+        "//support/zngur:zngur_lib",  # For traits like `CppCtor`.
     ],
 )
 ```
@@ -219,7 +219,9 @@ keyword.
     `&mut Cpp<i32>` or `&mut T`).
 -   Member functions (static, `const` and non-`const`), which are Rust methods.
     Overloads get `_2`, `_3`, ... suffixes.
--   Constructors of the types that Rust holds by value.
+-   Constructors of the types that Rust holds by value: the copy constructor is
+    `new_copy`, and the others are `new`, `new_2`, ... in declaration order
+    (`Point::new_2(1, 2).build()`, `Point::new_copy(&p).build()`).
 -   Free functions, in their namespaces.
 -   C++ references, following crubit's own rule (see below).
 -   Functions, member functions and constructors are `safe` or `unsafe` like in

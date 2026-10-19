@@ -36,6 +36,6 @@ type c++::unsupported::Outer {
     field &const value (type = i32);
     field &unique var value (type = i32) as value_mut;
 
-    safe constructor();
-    safe constructor<'__param_0>(&'__param_0 const c++::unsupported::Outer);
+    safe constructor() as new;
+    safe constructor<'__param_0>(&'__param_0 const c++::unsupported::Outer) as new_copy;
 }

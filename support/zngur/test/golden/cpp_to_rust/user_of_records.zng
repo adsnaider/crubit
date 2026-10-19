@@ -24,8 +24,8 @@ type c++::user_of_records::Segment {
     field &const to (type = c++::records::Point);
     field &unique var to (type = c++::records::Point) as to_mut;
 
-    safe constructor();
-    safe constructor<'__param_0>(&'__param_0 const c++::user_of_records::Segment);
+    safe constructor() as new;
+    safe constructor<'__param_0>(&'__param_0 const c++::user_of_records::Segment) as new_copy;
 }
 
 type c++::std::unique_ptr<c++::user_of_records::Segment> {

@@ -8,14 +8,14 @@
 use example_lib_zngur::shapes::{MakeSquare, Rect};
 use example_lib_zngur::std::make_canvas;
 use point_lib_zngur::geometry::Point;
-use zngur_lib::ZngCppConstruct;
+use zngur_lib::CppCtor;
 
 fn main() {
     // `Point` and `Rect` are held by value in Rust.
-    let min = Point::build((1, 2));
-    let max = Point::build((4, 6));
+    let min = Point::new_2(1, 2).build();
+    let max = Point::new_2(4, 6).build();
     // A C++ `const Point&` parameter takes a `&Point` (or a `&Point<Const>`).
-    let mut rect = Rect::build((&min, &max));
+    let mut rect = Rect::new(&min, &max).build();
 
     // Member functions are methods: `&self` for `const` member functions, and `&mut self` for
     // the others, which crubit takes as unique references.

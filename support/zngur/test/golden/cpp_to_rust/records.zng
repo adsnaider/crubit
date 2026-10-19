@@ -22,9 +22,9 @@ type c++::records::Point {
     field &const y (type = i32);
     field &unique var y (type = i32) as y_mut;
 
-    safe constructor<'__param_0>(&'__param_0 const c++::records::Point);
-    safe constructor();
-    safe constructor(i32, i32);
+    safe constructor<'__param_0>(&'__param_0 const c++::records::Point) as new_copy;
+    safe constructor() as new;
+    safe constructor(i32, i32) as new_2;
 
     safe fn Norm2<'__this>(&'__this const self) -> i32;
     safe fn Scale<'__this>(&'__this unique var self, i32);
@@ -41,8 +41,8 @@ type c++::records::Keywords {
     field &const match (type = i32) as match_;
     field &unique var match (type = i32) as match_mut;
 
-    safe constructor();
-    safe constructor<'__param_0>(&'__param_0 const c++::records::Keywords);
+    safe constructor() as new;
+    safe constructor<'__param_0>(&'__param_0 const c++::records::Keywords) as new_copy;
 
     safe fn Use<'__this>(&'__this const self) -> i32;
     safe fn move<'__this>(&'__this unique var self, i32) as move_;
@@ -52,8 +52,8 @@ type c++::records::WithPrivateField {
     #layout(size = 8, align = 8);
     #unsafe(trivially_relocatable);
 
-    safe constructor<'__param_0>(&'__param_0 const c++::records::WithPrivateField);
-    safe constructor(i64);
+    safe constructor<'__param_0>(&'__param_0 const c++::records::WithPrivateField) as new_copy;
+    safe constructor(i64) as new;
 
     safe fn Value<'__this>(&'__this const self) -> i64;
 }
@@ -67,6 +67,6 @@ type c++::records::nested::Inner {
     field &const weight (type = f64);
     field &unique var weight (type = f64) as weight_mut;
 
-    safe constructor();
-    safe constructor<'__param_0>(&'__param_0 const c++::records::nested::Inner);
+    safe constructor() as new;
+    safe constructor<'__param_0>(&'__param_0 const c++::records::nested::Inner) as new_copy;
 }

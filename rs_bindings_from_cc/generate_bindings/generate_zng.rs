@@ -472,7 +472,7 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
             }
         }
 
-        let mut constructor_inputs: Vec<Vec<String>> = vec![];
+        let mut constructors: Vec<(bool, ZngurCppConstructor)> = vec![];
         for child in record.children() {
             let func = match child {
                 Item::Func(func) => func,
@@ -504,22 +504,7 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
                     }
                     match self.constructor(func) {
                         Ok(constructor) => {
-                            // E.g. `T(const T&)` and `T(const T*)` would be the same Rust trait,
-                            // and so would `(&'a T)` and `(&'b T)`: compare the Rust types.
-                            let inputs: Vec<String> = constructor
-                                .inputs
-                                .iter()
-                                .map(|ty| ty.with_anonymous_lifetimes().to_string())
-                                .collect();
-                            if constructor_inputs.contains(&inputs) {
-                                self.skip(
-                                    method_path,
-                                    "another constructor has the same Rust parameter types",
-                                );
-                                continue;
-                            }
-                            constructor_inputs.push(inputs);
-                            ty.cpp_constructors.push(constructor);
+                            constructors.push((is_copy_constructor(func, record.id()), constructor))
                         }
                         Err(err) => self.skip(method_path, format!("{err:#}")),
                     }
@@ -542,6 +527,20 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
                 }
             }
         }
+        // The copy constructor is `new_copy`, and the others are `new`, `new_2`, ... in declaration
+        // order (of those that are emitted). crubit lists implicit constructors (often the copy
+        // constructor) first, which shouldn't take the short names.
+        for (is_copy, constructor) in &mut constructors {
+            if !*is_copy {
+                constructor.rust_name = unique_name(&mut rust_names, "new".to_string());
+            }
+        }
+        for (is_copy, constructor) in &mut constructors {
+            if *is_copy {
+                constructor.rust_name = unique_name(&mut rust_names, "new_copy".to_string());
+            }
+        }
+        ty.cpp_constructors.extend(constructors.into_iter().map(|(_, c)| c));
         ty
     }
 
@@ -611,6 +610,8 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
             .map(|i| self.sig_ty(&mut sig, Some(i)))
             .collect::<Result<Vec<_>>>()?;
         Ok(ZngurCppConstructor {
+            // Named by the caller.
+            rust_name: String::new(),
             is_safe: self.is_safe(func, false, &inputs),
             lifetimes: sig.declared,
             inputs,
@@ -1108,6 +1109,19 @@ fn rust_name(name: &str) -> String {
     } else {
         name.to_string()
     }
+}
+
+/// Whether `func` is a copy constructor of the record `record_id`: `T(const T&)`.
+fn is_copy_constructor(func: &Func<'_>, record_id: ItemId) -> bool {
+    let [_, other] = func.params() else {
+        return false;
+    };
+    let CcTypeVariant::Pointer(ptr) = other.type_().variant() else {
+        return false;
+    };
+    ptr.kind() == PointerTypeKind::LValueRef
+        && ptr.pointee_type().is_const()
+        && matches!(ptr.pointee_type().variant(), CcTypeVariant::Decl { id, .. } if *id == record_id)
 }
 
 /// Appends `_N` to `name` until it isn't in `names`, and adds it.

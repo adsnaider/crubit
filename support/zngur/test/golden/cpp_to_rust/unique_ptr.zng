@@ -20,8 +20,8 @@ type c++::unique_ptr::Widget {
     field &const id (type = i32);
     field &unique var id (type = i32) as id_mut;
 
-    safe constructor();
-    safe constructor<'__param_0>(&'__param_0 const c++::unique_ptr::Widget);
+    safe constructor() as new;
+    safe constructor<'__param_0>(&'__param_0 const c++::unique_ptr::Widget) as new_copy;
 }
 
 type c++::std::unique_ptr<c++::unique_ptr::Widget> {

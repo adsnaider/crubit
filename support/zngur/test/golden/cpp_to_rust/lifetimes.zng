@@ -20,8 +20,8 @@ type c++::lifetimes::Holder {
     field &const value (type = i32);
     field &unique var value (type = i32) as value_mut;
 
-    safe constructor();
-    safe constructor<'a>(&'a const c++::lifetimes::Holder);
+    safe constructor() as new;
+    safe constructor<'a>(&'a const c++::lifetimes::Holder) as new_copy;
 }
 
 mod c++::lifetimes {

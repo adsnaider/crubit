@@ -7,11 +7,11 @@
 
 use shapes_zngur::shapes::{MakeTriangle, Point};
 use shapes_zngur::std::make_canvas;
-use zngur_lib::ZngCppConstruct;
+use zngur_lib::CppCtor;
 
 fn main() {
     // Generated: a by-value C++ type, its constructors and its overloads.
-    let mut p = Point::build((1, 2));
+    let mut p = Point::new_2(1, 2).build();
     p.Scale_2(10, 100);
     println!("[Rust] p = ({}, {})", p.x().get(), p.y().get());
 
@@ -31,7 +31,7 @@ fn main() {
         println!("[Rust] point {i}: ({}, {})", point.x().get(), point.y().get());
     }
     let mut reversed = triangle.Reversed();
-    reversed.push_back(&Point::build((7, 7)));
+    reversed.push_back(&Point::new_2(7, 7).build());
     println!("[Rust] reversed, plus one more: {} points", reversed.size());
 
     // Added by hand (shapes_extra.zng, #2): `std::make_unique<Canvas>()`.

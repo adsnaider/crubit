@@ -6,7 +6,7 @@
 
 use geo_zngur::geo::{Add, MakeCounter, MakePoint, NextOf, Point};
 use shapes_zngur::shapes::{Segment, UnitSegment};
-use zngur_lib::{Const, Cpp, ZngCppConstruct};
+use zngur_lib::{Const, Cpp, CppCtor};
 
 #[test]
 fn test_free_function() {
@@ -15,7 +15,7 @@ fn test_free_function() {
 
 #[test]
 fn test_value_type() {
-    let mut p = Point::build((3, 4));
+    let mut p = Point::new_2(3, 4).build();
     assert_eq!(p.Norm2(), 25);
     p.Scale(2);
     // Fields are C++ objects: `&Cpp<i32, Const>` and `&mut Cpp<i32>`.
@@ -47,11 +47,14 @@ fn test_reference_only_type() {
 
 #[test]
 fn test_type_of_dependency() {
-    let from = Point::build((1, 1));
-    let to = Point::build((4, 5));
-    let segment = Segment::build((&from, &to));
+    let from = Point::new_2(1, 1).build();
+    let to = Point::new_2(4, 5).build();
+    let segment = Segment::new(&from, &to).build();
     assert_eq!(segment.Length2(), 25);
     assert_eq!(segment.to().Norm2(), 41);
+    // The copy constructor is `new_copy`, and takes a `const` object too.
+    let to_copy = Point::new_copy(segment.to()).build();
+    assert_eq!(to_copy.Norm2(), 41);
     assert_eq!(UnitSegment().Length2(), 1);
 }
 

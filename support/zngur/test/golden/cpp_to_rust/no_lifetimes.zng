@@ -23,8 +23,8 @@ type c++::no_lifetimes::Counter {
     field &const count (type = i32);
     field &unique var count (type = i32) as count_mut;
 
-    safe constructor<'a>(&'a const c++::no_lifetimes::Counter);
-    safe constructor();
+    safe constructor<'a>(&'a const c++::no_lifetimes::Counter) as new_copy;
+    safe constructor() as new;
 
     unsafe fn Get(const self&) -> i32;
     unsafe fn Add(self&, const i32&);
