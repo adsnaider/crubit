@@ -5,6 +5,9 @@
 // Automatically @generated zngur IDL for the following C++ target:
 // //support/zngur/test/golden/cpp_to_rust:no_lifetimes
 
+// Some functions are `CRUBIT_UNSAFE_MARK_SAFE`, but take raw pointers.
+#allow(safe_raw_pointer)
+
 import "../../../cpp_std.zng";
 
 #crate no_lifetimes_zngur
@@ -27,6 +30,8 @@ type c++::no_lifetimes::Counter {
     unsafe fn Add(self&, const i32&);
     unsafe fn Ref(self&) -> i32&;
     safe static fn Twice(i32) -> i32;
+    safe fn Peek(const self&) -> i32;
+    unsafe fn Unchecked(const self&, i32) -> i32;
 }
 
 mod c++::no_lifetimes {

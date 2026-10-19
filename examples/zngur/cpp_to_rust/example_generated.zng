@@ -23,18 +23,18 @@ type c++::shapes::Rect {
     field &const max (type = c++::geometry::Point);
     field &unique var max (type = c++::geometry::Point) as max_mut;
 
-    safe constructor<'a>(&'a const c++::shapes::Rect);
+    safe constructor<'__param_0>(&'__param_0 const c++::shapes::Rect);
     safe constructor<'min, 'max>(&'min const c++::geometry::Point, &'max const c++::geometry::Point);
 
-    safe fn Area<'a>(&'a const self) -> i32;
-    safe fn Translate<'a>(&'a unique var self, i32, i32);
+    safe fn Area<'__this>(&'__this const self) -> i32;
+    safe fn Translate<'__this>(&'__this unique var self, i32, i32);
 }
 
 type c++::shapes::Canvas {
     #layout(size = 16, align = 8);
 
-    safe fn Draw<'a, 'rect>(&'a unique var self, &'rect const c++::shapes::Rect);
-    safe fn TotalArea<'a>(&'a const self) -> i32;
+    safe fn Draw<'__this, 'rect>(&'__this unique var self, &'rect const c++::shapes::Rect);
+    safe fn TotalArea<'__this>(&'__this const self) -> i32;
 }
 
 type c++::std::unique_ptr<c++::shapes::Rect> {

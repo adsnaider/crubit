@@ -81,7 +81,7 @@ pub struct SkippedItem {
 /// the target's features.
 pub fn generate_zng(db: &BindingsGenerator<'_>, options: &ZngOptions) -> Result<String> {
     let ir = db.ir();
-    let (spec, skipped) = generate_zng_spec(db, options)?;
+    let ZngSpec { spec, skipped, allows_safe_raw_pointer } = generate_zng_spec(db, options)?;
 
     // Writing to a `String` can't fail, so the `writeln!` results are ignored below.
     let mut out = String::new();
@@ -94,6 +94,15 @@ pub fn generate_zng(db: &BindingsGenerator<'_>, options: &ZngOptions) -> Result<
             let reason = reason.split_whitespace().collect::<Vec<_>>().join(" ");
             let _ = writeln!(out, "// skipped: {path}: {reason}");
         }
+    }
+    // zngur's `#allow`s apply to the whole file, wherever they are.
+    if allows_safe_raw_pointer {
+        let _ = writeln!(out);
+        let _ = writeln!(
+            out,
+            "// Some functions are `CRUBIT_UNSAFE_MARK_SAFE`, but take raw pointers."
+        );
+        let _ = writeln!(out, "#allow(safe_raw_pointer)");
     }
     let mut idl = Vec::<u8>::new();
     IDLPrinter::new(&mut idl)
@@ -115,11 +124,18 @@ pub fn generate_zng(db: &BindingsGenerator<'_>, options: &ZngOptions) -> Result<
     Ok(out)
 }
 
+/// The description of a C++ target for zngur.
+pub struct ZngSpec {
+    pub spec: ZngurSpec,
+    /// The items that aren't in `spec`, and why.
+    pub skipped: Vec<SkippedItem>,
+    /// Whether the file must silence zngur's `safe_raw_pointer` warning (`#allow`), because a
+    /// `safe` function takes raw pointers.
+    pub allows_safe_raw_pointer: bool,
+}
+
 /// Builds the `ZngurSpec` for the current target of `db.ir()`, and the list of skipped items.
-pub fn generate_zng_spec(
-    db: &BindingsGenerator<'_>,
-    options: &ZngOptions,
-) -> Result<(ZngurSpec, Vec<SkippedItem>)> {
+pub fn generate_zng_spec(db: &BindingsGenerator<'_>, options: &ZngOptions) -> Result<ZngSpec> {
     let ir = db.ir();
     let crate_name = if options.crate_name.is_empty() {
         ir.crate_name(ir.current_target())
@@ -137,6 +153,7 @@ pub fn generate_zng_spec(
         unique_ptrs: vec![],
         skipped: vec![],
         uses_bool: false,
+        allows_safe_raw_pointer: false,
     };
     let mut spec = ZngurSpec { crate_name: Some(crate_name), ..ZngurSpec::default() };
     for import in &options.imports {
@@ -156,9 +173,10 @@ pub fn generate_zng_spec(
         spec.additional_includes = AdditionalIncludes(format!("\n{includes}"));
     }
     emitter.add_items(&mut spec);
+    let allows_safe_raw_pointer = emitter.allows_safe_raw_pointer;
     let mut skipped = emitter.skipped;
     skipped.sort_by(|a, b| a.path.cmp(&b.path));
-    Ok((spec, skipped))
+    Ok(ZngSpec { spec, skipped, allows_safe_raw_pointer })
 }
 
 /// Returns the path of `path` relative to the directory `dir`, as written in `.zng` files: with
@@ -205,6 +223,9 @@ struct Emitter<'a, 'pb> {
     skipped: Vec<SkippedItem>,
     /// Whether `bool` is used, and so needs to be declared.
     uses_bool: bool,
+    /// Whether a `safe` function takes raw pointers (`CRUBIT_UNSAFE_MARK_SAFE`), so the file must
+    /// silence zngur's `safe_raw_pointer` warning.
+    allows_safe_raw_pointer: bool,
 }
 
 impl<'a, 'pb> Emitter<'a, 'pb> {
@@ -763,13 +784,23 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
         })
     }
 
-    /// Whether a function can be `safe`: it isn't annotated as unsafe, and takes no raw pointers
-    /// (a raw receiver, C++ pointers, or C++ references without lifetimes), which may be null or
-    /// invalid. (References to C++ objects refer to valid objects.)
-    fn is_safe(&self, func: &Func<'pb>, raw_receiver: bool, inputs: &[RustType]) -> bool {
-        func.safety_annotation() != SafetyAnnotation::Unsafe
-            && !raw_receiver
-            && !inputs.iter().any(contains_raw_ptr)
+    /// Whether a function is `safe`, like in crubit's own bindings: `CRUBIT_UNSAFE` functions
+    /// aren't, `CRUBIT_UNSAFE_MARK_SAFE` ones are, and the others are unless they take raw
+    /// pointers (a raw receiver, C++ pointers, or C++ references without lifetimes), which may be
+    /// null or invalid. (References to C++ objects refer to valid objects, and returned raw
+    /// pointers don't make a function unsafe.) A `safe` function that takes raw pointers makes
+    /// the file silence zngur's `safe_raw_pointer` warning.
+    fn is_safe(&mut self, func: &Func<'pb>, raw_receiver: bool, inputs: &[RustType]) -> bool {
+        let takes_raw_ptr = raw_receiver || inputs.iter().any(contains_raw_ptr);
+        let is_safe = match func.safety_annotation() {
+            SafetyAnnotation::Unannotated => !takes_raw_ptr,
+            SafetyAnnotation::Unsafe => false,
+            SafetyAnnotation::DisableUnsafe => true,
+        };
+        if is_safe && takes_raw_ptr {
+            self.allows_safe_raw_pointer = true;
+        }
+        is_safe
     }
 
     /// Converts a C++ type to a zngur type. Fails if zngur can't express the type, or it isn't
@@ -967,9 +998,6 @@ struct Signature<'s, 'pb> {
     /// The lifetime names that the signature already uses, which fresh names avoid.
     reserved: HashSet<String>,
     next_fresh: usize,
-    /// Fresh names for the lifetimes that crubit makes up (`__this`, `__param_0`, ...), which
-    /// read better in the `.zng` file.
-    renamed: HashMap<String, String>,
 }
 
 impl<'s, 'pb> Signature<'s, 'pb> {
@@ -988,7 +1016,6 @@ impl<'s, 'pb> Signature<'s, 'pb> {
             declared: vec![],
             reserved,
             next_fresh: 0,
-            renamed: HashMap::new(),
         }
     }
 
@@ -1000,14 +1027,7 @@ impl<'s, 'pb> Signature<'s, 'pb> {
             LifetimeInfo::None => return None,
             LifetimeInfo::Elided if is_return => return None,
             LifetimeInfo::Elided => self.fresh(),
-            LifetimeInfo::Named(name) if name.starts_with("__") => match self.renamed.get(&name) {
-                Some(renamed) => renamed.clone(),
-                None => {
-                    let renamed = self.fresh();
-                    self.renamed.insert(name, renamed.clone());
-                    renamed
-                }
-            },
+            // crubit's names, including the ones it makes up (`__this`, `__param_0`, ...).
             LifetimeInfo::Named(name) => name,
         };
         let lifetime = Lifetime(name);

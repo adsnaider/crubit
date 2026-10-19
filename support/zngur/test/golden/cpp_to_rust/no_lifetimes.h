@@ -7,6 +7,8 @@
 
 #include <cstdint>
 
+#include "support/annotations.h"
+
 namespace no_lifetimes {
 
 // Without `assume_lifetimes` (or annotations), C++ references have no lifetimes: they're raw
@@ -19,6 +21,10 @@ struct Counter {
   void Add(const int32_t& amount) { count += amount; }
   int32_t& Ref() { return count; }
   static int32_t Twice(int32_t value) { return value * 2; }
+  // crubit's annotations decide whether functions are safe, even with raw receivers or
+  // references.
+  CRUBIT_UNSAFE_MARK_SAFE int32_t Peek() const { return count; }
+  CRUBIT_UNSAFE int32_t Unchecked(int32_t value) const { return count + value; }
 
   int32_t count;
 };

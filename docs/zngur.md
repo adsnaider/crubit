@@ -198,7 +198,8 @@ destroys the object when it's dropped. `examples/zngur/cpp_to_rust` does this.
 -   Inherent methods, with `self`, `&self` or `&mut self`. Methods whose names
     clash with a field get a `_` suffix.
 -   The lifetimes of functions and methods (`fn f<'a>(&'a str) -> &'a str`).
-    Elided ones get names (`'a`, `'b`, ...), so they're always declared.
+    Elided ones keep the names that crubit gives them (`'__anon1`, ...), so
+    they're always declared.
 -   `Copy`, `Clone`, `Default`, `Debug` and `Drop`.
 -   Primitives, `bool`, `char` and `&str`.
 -   Types of other crates, through imports.
@@ -221,9 +222,8 @@ keyword.
 -   Constructors of the types that Rust holds by value.
 -   Free functions, in their namespaces.
 -   C++ references, following crubit's own rule (see below).
--   Functions, member functions and constructors are `safe` unless they take raw
-    pointers (C++ pointers, or C++ references without a lifetime), which may be
-    null or invalid, or are marked `CRUBIT_UNSAFE`.
+-   Functions, member functions and constructors are `safe` or `unsafe` like in
+    crubit's own bindings (see below).
 -   `std::unique_ptr<T>`, for `T` of the same library.
 -   Types of other libraries, through imports.
 
@@ -249,13 +249,32 @@ bindings:
     which gives references crubit's default lifetimes. With
     `assume_this_lifetimes`, only `this` gets one.
 
-Lifetimes are always named and declared on the function (elided ones get fresh
-names), so the `.zng` file never relies on elision. Any other reference is raw:
-`const T&` / `T&` (a raw pointer in Rust), or a `const self&` / `self&`
-receiver, which makes the member function an associated function taking `this`
-as a raw pointer. Functions that take raw references are `unsafe`. A returned
-reference whose lifetime crubit can't name is raw as well. C++ types with
-lifetime parameters are skipped.
+Lifetimes are always named and declared on the function, so the `.zng` file
+never relies on elision. They keep crubit's names, including the ones it makes
+up (`'__this`, `'__param_0`, ...). References that only have an elided lifetime
+(e.g. those of constructors) get fresh names (`'a`, `'b`, ...).
+
+Any other reference is raw: `const T&` / `T&` (a raw pointer in Rust), or a
+`const self&` / `self&` receiver, which makes the member function an associated
+function taking `this` as a raw pointer. A returned reference whose lifetime
+crubit can't name is raw as well. C++ types with lifetime parameters are
+skipped.
+
+#### Safety
+
+Whether a function, member function or constructor is `safe` follows crubit's
+annotations, like in its own bindings. The `.zng` file decides, and zngur only
+warns.
+
+-   `CRUBIT_UNSAFE` functions are `unsafe`.
+-   `CRUBIT_UNSAFE_MARK_SAFE` functions are `safe`, even if they take raw
+    pointers. zngur warns about `safe` functions that take raw pointers, so the
+    generated file then silences the warning with `#allow(safe_raw_pointer)`.
+-   Other functions are `unsafe` if they take a raw pointer (a C++ pointer, a
+    raw reference or a raw receiver), which may be null or invalid, and `safe`
+    otherwise. References to C++ objects refer to valid objects, and returned
+    raw pointers don't make a function `unsafe`. (Like in crubit, `this` doesn't
+    count for constructors.)
 
 Skipped: enums, templates, type aliases, operators, nested types, unions,
 functions in the global namespace, `char`, `void*`, pointers to pointers,

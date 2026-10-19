@@ -22,13 +22,13 @@ type c++::records::Point {
     field &const y (type = i32);
     field &unique var y (type = i32) as y_mut;
 
-    safe constructor<'a>(&'a const c++::records::Point);
+    safe constructor<'__param_0>(&'__param_0 const c++::records::Point);
     safe constructor();
     safe constructor(i32, i32);
 
-    safe fn Norm2<'a>(&'a const self) -> i32;
-    safe fn Scale<'a>(&'a unique var self, i32);
-    safe fn Scale<'a>(&'a unique var self, i32, i32) as Scale_2;
+    safe fn Norm2<'__this>(&'__this const self) -> i32;
+    safe fn Scale<'__this>(&'__this unique var self, i32);
+    safe fn Scale<'__this>(&'__this unique var self, i32, i32) as Scale_2;
     safe static fn Origin() -> c++::records::Point;
 }
 
@@ -42,20 +42,20 @@ type c++::records::Keywords {
     field &unique var match (type = i32) as match_mut;
 
     safe constructor();
-    safe constructor<'a>(&'a const c++::records::Keywords);
+    safe constructor<'__param_0>(&'__param_0 const c++::records::Keywords);
 
-    safe fn Use<'a>(&'a const self) -> i32;
-    safe fn move<'a>(&'a unique var self, i32) as move_;
+    safe fn Use<'__this>(&'__this const self) -> i32;
+    safe fn move<'__this>(&'__this unique var self, i32) as move_;
 }
 
 type c++::records::WithPrivateField {
     #layout(size = 8, align = 8);
     #unsafe(trivially_relocatable);
 
-    safe constructor<'a>(&'a const c++::records::WithPrivateField);
+    safe constructor<'__param_0>(&'__param_0 const c++::records::WithPrivateField);
     safe constructor(i64);
 
-    safe fn Value<'a>(&'a const self) -> i64;
+    safe fn Value<'__this>(&'__this const self) -> i64;
 }
 
 type c++::records::nested::Inner {
@@ -68,5 +68,5 @@ type c++::records::nested::Inner {
     field &unique var weight (type = f64) as weight_mut;
 
     safe constructor();
-    safe constructor<'a>(&'a const c++::records::nested::Inner);
+    safe constructor<'__param_0>(&'__param_0 const c++::records::nested::Inner);
 }

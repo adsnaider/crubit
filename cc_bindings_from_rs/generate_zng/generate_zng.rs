@@ -142,8 +142,6 @@ pub fn generate_zng_spec(db: &BindingsGenerator, options: &ZngOptions) -> Result
         uses_char: false,
         uses_str: false,
         fn_lifetimes: vec![],
-        fn_reserved: HashSet::new(),
-        fn_renamed: HashMap::new(),
     };
     let mut spec = ZngurSpec::default();
     for import in &options.imports {
@@ -181,10 +179,6 @@ struct Emitter<'a, 'tcx> {
     uses_str: bool,
     /// The lifetimes of the function being described, in order of first use.
     fn_lifetimes: Vec<Lifetime>,
-    /// The named lifetimes of the function being described, which fresh names avoid.
-    fn_reserved: HashSet<String>,
-    /// Fresh names for its anonymous lifetimes (which rustc deanonymizes as `'__anon1`, ...).
-    fn_renamed: HashMap<String, String>,
 }
 
 impl<'a, 'tcx> Emitter<'a, 'tcx> {
@@ -544,7 +538,7 @@ impl<'a, 'tcx> Emitter<'a, 'tcx> {
     fn zngur_method(&mut self, item: &ty::AssocItem, self_ty: Ty<'tcx>) -> Result<ZngurMethod> {
         let tcx = self.db.tcx();
         let sig = self.fn_sig(item.def_id)?;
-        self.begin_fn(&sig);
+        self.begin_fn();
         let mut inputs = sig.inputs().iter().copied();
         let (receiver, receiver_lifetime) = if item.is_method() {
             let self_param = inputs.next().expect("methods have a `self` parameter");
@@ -576,7 +570,7 @@ impl<'a, 'tcx> Emitter<'a, 'tcx> {
 
     fn zngur_fn(&mut self, path: &[String], def_id: DefId) -> Result<ZngurFn> {
         let sig = self.fn_sig(def_id)?;
-        self.begin_fn(&sig);
+        self.begin_fn();
         let inputs =
             sig.inputs().iter().map(|ty| self.zngur_ty(*ty)).collect::<Result<Vec<_>>>()?;
         let output = self.zngur_ty(sig.output())?;
@@ -588,48 +582,20 @@ impl<'a, 'tcx> Emitter<'a, 'tcx> {
         })
     }
 
-    /// Starts describing a function with the signature `sig`, whose lifetimes are all named.
-    fn begin_fn(&mut self, sig: &ty::FnSig<'tcx>) {
-        let tcx = self.db.tcx();
+    /// Starts describing a function.
+    fn begin_fn(&mut self) {
         self.fn_lifetimes.clear();
-        self.fn_renamed.clear();
-        self.fn_reserved = sig
-            .inputs_and_output
-            .iter()
-            .flat_map(|ty| ty.walk())
-            .filter_map(|arg| arg.as_region()?.get_name(tcx))
-            .map(|name| name.as_str().trim_start_matches('\'').to_string())
-            .collect();
     }
 
     /// The lifetime of a reference in a function's signature, which it adds to the function's
-    /// lifetimes. Anonymous lifetimes (deanonymized as `'__anon1`, ... by
-    /// `liberate_and_deanonymize_late_bound_regions`) get fresh names: `'a`, `'b`, ....
+    /// lifetimes. Anonymous lifetimes are named by `liberate_and_deanonymize_late_bound_regions`
+    /// (`'__anon1`, ...).
     fn lifetime(&mut self, region: ty::Region<'tcx>) -> Result<Lifetime> {
         let name = region
             .get_name(self.db.tcx())
             .ok_or_else(|| anyhow!("lifetime `{region}` is not supported"))?;
         let name = name.as_str();
-        let mut name = name.strip_prefix('\'').unwrap_or(name).to_string();
-        if name.starts_with("__anon") {
-            name = match self.fn_renamed.get(&name) {
-                Some(renamed) => renamed.clone(),
-                None => {
-                    let renamed = (0..)
-                        .map(|n: usize| {
-                            let letter = char::from(b'a' + (n % 26) as u8);
-                            match n / 26 {
-                                0 => letter.to_string(),
-                                round => format!("{letter}{round}"),
-                            }
-                        })
-                        .find(|candidate| self.fn_reserved.insert(candidate.clone()))
-                        .expect("there are infinitely many names");
-                    self.fn_renamed.insert(name, renamed.clone());
-                    renamed
-                }
-            };
-        }
+        let name = name.strip_prefix('\'').unwrap_or(name).to_string();
         let lifetime = Lifetime(name);
         if !lifetime.is_builtin() && !self.fn_lifetimes.contains(&lifetime) {
             self.fn_lifetimes.push(lifetime.clone());

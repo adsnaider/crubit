@@ -16,13 +16,13 @@ import "../../../cpp_std.zng";
 type c++::non_movable::Shape {
     #layout(size = 8, align = 8);
 
-    safe fn Area<'a>(&'a const self) -> i32;
+    safe fn Area<'__this>(&'__this const self) -> i32;
 }
 
 type c++::non_movable::Resource {
     #layout(size = 4, align = 4);
 
-    safe fn Id<'a>(&'a const self) -> i32;
+    safe fn Id<'__this>(&'__this const self) -> i32;
     safe static fn Create(i32) -> c++::non_movable::Resource*;
 }
 

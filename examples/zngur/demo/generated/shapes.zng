@@ -26,26 +26,26 @@ type c++::shapes::Point {
     field &const y (type = i32);
     field &unique var y (type = i32) as y_mut;
 
-    safe constructor<'a>(&'a const c++::shapes::Point);
+    safe constructor<'__param_0>(&'__param_0 const c++::shapes::Point);
     safe constructor();
     safe constructor(i32, i32);
 
-    safe fn Scale<'a>(&'a unique var self, i32);
-    safe fn Scale<'a>(&'a unique var self, i32, i32) as Scale_2;
+    safe fn Scale<'__this>(&'__this unique var self, i32);
+    safe fn Scale<'__this>(&'__this unique var self, i32, i32) as Scale_2;
 }
 
 type c++::shapes::Polygon {
     #layout(size = 24, align = 8);
 
-    safe fn Add<'a, 'point>(&'a unique var self, &'point const c++::shapes::Point);
-    safe fn Size<'a>(&'a const self) -> i32;
+    safe fn Add<'__this, 'point>(&'__this unique var self, &'point const c++::shapes::Point);
+    safe fn Size<'__this>(&'__this const self) -> i32;
 }
 
 type c++::shapes::Canvas {
     #layout(size = 16, align = 8);
 
-    safe fn Draw<'a, 'point>(&'a unique var self, &'point const c++::shapes::Point);
-    safe fn Count<'a>(&'a const self) -> i32;
+    safe fn Draw<'__this, 'point>(&'__this unique var self, &'point const c++::shapes::Point);
+    safe fn Count<'__this>(&'__this const self) -> i32;
 }
 
 type c++::std::unique_ptr<c++::shapes::Polygon> {

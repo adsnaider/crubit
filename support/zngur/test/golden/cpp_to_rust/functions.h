@@ -29,6 +29,10 @@ int32_t Read(const int32_t& value);
 // So are functions that crubit is told are unsafe.
 CRUBIT_UNSAFE int32_t Unchecked(int32_t index);
 
+// Functions that crubit is told are safe are, even if they take pointers (zngur warns about them,
+// so the file silences the warning with `#allow(safe_raw_pointer)`).
+CRUBIT_UNSAFE_MARK_SAFE void FillChecked(int32_t* out, int32_t value);
+
 namespace inner {
 int32_t Twice(int32_t value);
 }  // namespace inner

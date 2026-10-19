@@ -21,7 +21,7 @@ type c++::unique_ptr::Widget {
     field &unique var id (type = i32) as id_mut;
 
     safe constructor();
-    safe constructor<'a>(&'a const c++::unique_ptr::Widget);
+    safe constructor<'__param_0>(&'__param_0 const c++::unique_ptr::Widget);
 }
 
 type c++::std::unique_ptr<c++::unique_ptr::Widget> {

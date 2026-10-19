@@ -49,5 +49,9 @@ cc_zng_golden_test(
     cc_deps = ["//support:lifetime_annotations"],
 )
 
-# Without lifetime information, C++ references are raw, and functions that take them are `unsafe`.
-cc_zng_golden_test(name = "no_lifetimes")
+# Without lifetime information, C++ references are raw, and functions that take them are `unsafe`
+# unless they're annotated otherwise.
+cc_zng_golden_test(
+    name = "no_lifetimes",
+    cc_deps = ["//support:annotations"],
+)

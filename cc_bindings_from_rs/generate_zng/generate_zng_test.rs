@@ -114,13 +114,13 @@ type ::rust_out::Point {
     field y (offset = 4, type = i32);
 
     fn new(i32, i32) -> ::rust_out::Point as new_;
-    fn x<'a>(&'a self) -> i32 as x_;
-    fn set_x<'a>(&'a mut self, i32);
+    fn x<'__anon1>(&'__anon1 self) -> i32 as x_;
+    fn set_x<'__anon1>(&'__anon1 mut self, i32);
     fn is_origin(self) -> bool;
 }
 
 mod ::rust_out {
-    fn get_point<'a>(&'a ::rust_out::Opaque) -> ::rust_out::Point;
+    fn get_point<'__anon1>(&'__anon1 ::rust_out::Opaque) -> ::rust_out::Point;
 }
 "#
     );
@@ -174,7 +174,7 @@ type ::rust_out::Named {
 
     field 0 (offset = 0, type = u8);
 
-    fn clone<'a>(&'a self) -> u8;
+    fn clone<'__anon1>(&'__anon1 self) -> u8;
 }
 "#
     );
@@ -201,7 +201,7 @@ type str {
 }
 
 mod ::rust_out {
-    fn greeting_len<'a>(&'a str) -> usize;
+    fn greeting_len<'__anon1>(&'__anon1 str) -> usize;
 }
 "#
     );
@@ -216,8 +216,8 @@ fn test_function_lifetimes() {
         pub fn name() -> &'static str { "name" }
         "#,
     );
-    // Named lifetimes keep their names, elided ones get fresh names, and `'static` needs no
-    // declaration.
+    // Named lifetimes keep their names, elided ones get rustc's deanonymized names, and `'static`
+    // needs no declaration.
     assert_eq!(
         zng,
         r#"// Automatically @generated zngur IDL for the following Rust crate:
@@ -231,7 +231,7 @@ type str {
 }
 
 mod ::rust_out {
-    fn first<'x, 'a>(&'x str, &'a str) -> &'x str;
+    fn first<'x, '__anon1>(&'x str, &'__anon1 str) -> &'x str;
     fn longest<'x>(&'x str, &'x str) -> &'x str;
     fn name() -> &'static str;
 }
@@ -297,7 +297,7 @@ fn test_cpp_reserved_names() {
 type ::rust_out::Keywords {
     #layout(size = 4, align = 4);
 
-    fn operator<'a>(&'a self) -> i32 as operator_;
+    fn operator<'__anon1>(&'__anon1 self) -> i32 as operator_;
 }
 "#
     );
@@ -402,8 +402,8 @@ type ::rust_out::Conflicting {
 
     field len (offset = 0, type = usize);
 
-    fn len<'a>(&'a self) -> usize as len__;
-    fn len_<'a>(&'a self) -> usize;
+    fn len<'__anon1>(&'__anon1 self) -> usize as len__;
+    fn len_<'__anon1>(&'__anon1 self) -> usize;
 }
 
 type ::rust_out::Static {

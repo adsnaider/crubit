@@ -17,6 +17,6 @@ type ::stats::Summary {
     field count (offset = 8, type = i32);
     field total (offset = 0, type = i64);
 
-    fn add<'a>(&'a mut self, i32);
+    fn add<'__anon1>(&'__anon1 mut self, i32);
     fn default() -> ::stats::Summary use ::core::default::Default;
 }

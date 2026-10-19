@@ -8,6 +8,9 @@
 // Items that are not (yet) supported in this file:
 // skipped: GlobalFunction: functions in the global namespace are not supported by zngur
 
+// Some functions are `CRUBIT_UNSAFE_MARK_SAFE`, but take raw pointers.
+#allow(safe_raw_pointer)
+
 import "../../../cpp_std.zng";
 
 #crate functions_zngur
@@ -32,6 +35,7 @@ mod c++::functions {
     unsafe fn Fill(i32*, i32);
     safe fn Read<'value>(&'value const i32) -> i32;
     unsafe fn Unchecked(i32) -> i32;
+    safe fn FillChecked(i32*, i32);
 }
 mod c++::functions::inner {
     safe fn Twice(i32) -> i32;
