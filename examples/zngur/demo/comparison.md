@@ -1,14 +1,14 @@
 # Compared with crubit's own bindings
 
 These numbers are for `shapes.h` in this directory, on x86_64 Linux, at the
-commit that added this demo. The comparison is about where the work happens. It
+commit that last updated them. The comparison is about where the work happens. It
 doesn't measure the quality of the two kinds of bindings.
 
 ## What crubit writes for `shapes.h`
 
 |                    | crubit's own bindings             | crubit as a zngur front end                    |
 | ------------------ | --------------------------------- | ---------------------------------------------- |
-| crubit writes      | the bindings themselves (Rust, and C++ thunks) | a 56-line (2.4 KB) `.zng` file |
+| crubit writes      | the bindings themselves (Rust, and C++ thunks) | a 56-line (2.7 KB) `.zng` file |
 | Reviewable API     | buried in generated Rust          | the `.zng` file reads like an API spec         |
 | Overloads (`Scale`) | skipped ("Cannot generate bindings for overloaded function") | `Scale` and `Scale_2` |
 | `Points()` / `Reversed()` (`std::vector<Point>`) | skipped | skipped, and brought back with 15 lines of `shapes_extra.zng` |
@@ -29,12 +29,12 @@ whole item per line.
 
 |            | crubit's own bindings | crubit + zngur |
 | ---------- | --------------------- | -------------- |
-| Rust       | 449 lines (21 KB)     | 765 lines (24 KB) |
-| C++ source | 137 lines (4.5 KB)    | 236 lines (11 KB) |
+| Rust       | 449 lines (21 KB)     | 846 lines (27 KB) |
+| C++ source | 137 lines (4.5 KB)    | 243 lines (11 KB) |
 | C++ header | (none: it uses the library's own header) | 1,718 lines (61 KB) |
-| Total      | ~590 lines (~26 KB)   | ~2,700 lines (~96 KB) |
+| Total      | ~590 lines (~26 KB)   | ~2,800 lines (~99 KB) |
 
-Neither side includes its shared runtime: zngur's `zngur.h` (~355 KB), or
+Neither side includes its shared runtime: zngur's `zngur.h` (~356 KB), or
 crubit's support crates and headers. The two don't bind the same API either
 (crubit's own bindings skip the `Scale` overloads).
 
@@ -49,8 +49,8 @@ would shrink it.
 
 |                    | crubit's own bindings | crubit as a zngur front end |
 | ------------------ | --------------------- | --------------------------- |
-| C++ to Rust        | `rs_bindings_from_cc/generate_bindings`: ~18k lines of Rust | `generate_zng.rs`: 886 lines |
-| Rust to C++        | `cc_bindings_from_rs/generate_bindings`: ~18k lines of Rust | `generate_zng.rs`: 741 lines |
+| C++ to Rust        | `rs_bindings_from_cc/generate_bindings`: ~18k lines of Rust | `generate_zng.rs`: 1,207 lines |
+| Rust to C++        | `cc_bindings_from_rs/generate_bindings`: ~18k lines of Rust | `generate_zng.rs`: 790 lines |
 
 The emitters cover a subset of what crubit's generators do, so this compares
 where the work moves (zngur does the codegen), not sizes for equal coverage.

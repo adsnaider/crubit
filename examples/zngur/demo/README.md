@@ -57,12 +57,16 @@ merges).
    `std::vector<Point>` and draws them on a `Canvas` it created. With crubit's
    `assume_lifetimes` feature, C++ references get lifetimes: member functions
    are `safe` Rust methods (`&'a const self` / `&'a unique var self` in the
-   `.zng` file), and a `const Point&` is a `&'a Point<Const>`.
+   `.zng` file), and a `const Point&` is a `&'a Point<Const>`. References to
+   builtins from C++, including field accessors like `p.x()`, are
+   `&Cpp<i32, Const>` / `&mut Cpp<i32>`: C++ may change them through other
+   paths (they're an `UnsafeCell`), so Rust reads them with `.get()` and
+   writes them with `.set()`.
 6. **Same in the other direction.** For a Rust crate, crubit skips
    `Option<f64>`, traits and `Box<dyn Shape>`. `stats_extra.zng` adds them, and
    `main.cc` calls `summary.mean()` and `square.area()` from C++.
 7. **Why it matters to crubit** (see `comparison.md`):
-   - crubit focuses on analysis, and zngur does the codegen: ~1.6k lines of
+   - crubit focuses on analysis, and zngur does the codegen: ~2k lines of
      emitters, against ~36k lines of generators (for less coverage, so far).
    - Users unblock themselves, and the `.zng` file shows up in code review
      like an API.
@@ -77,7 +81,9 @@ merges).
 - **Safety.** References follow crubit's lifetime rules, but zngur can't check
   the lifetimes against C++: like crubit's own bindings, they're a promise.
   Without lifetime information (no `assume_lifetimes` or annotations), C++
-  references are raw pointers, and the functions that take them are `unsafe`.
+  references are raw pointers, and functions that take them are `unsafe` by
+  default (crubit's default). `CRUBIT_UNSAFE_MARK_SAFE` makes them `safe`, and
+  the generated file then has `#allow(safe_raw_pointer)`.
 - **Generated code size.** zngur generates about 4 to 5 times as much code as
   crubit's own bindings for `shapes.h`, mostly in its C++ header (see
   `comparison.md`). crubit's own part shrinks to the `.zng` file.
