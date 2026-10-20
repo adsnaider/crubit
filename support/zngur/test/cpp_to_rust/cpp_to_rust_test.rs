@@ -30,17 +30,14 @@ fn test_value_type() {
 #[test]
 fn test_unique_ptr() {
     let p = MakePoint(1, 2);
-    // SAFETY: `p` owns a `Point`, which lives as long as it does.
-    let point = unsafe { p.get().as_ref() }.expect("null");
+    let point = p.get().expect("empty std::unique_ptr");
     assert_eq!(point.Norm2(), 5);
 }
 
 #[test]
 fn test_reference_only_type() {
-    let counter = MakeCounter();
-    // SAFETY: `counter` owns a `Counter`, which lives as long as it does, and nothing else refers
-    // to it meanwhile.
-    let counter_ref = unsafe { counter.get().as_mut() }.expect("null");
+    let mut counter = MakeCounter();
+    let counter_ref = counter.get_mut().expect("empty std::unique_ptr");
     assert_eq!(counter_ref.Next(), 1);
     assert_eq!(NextOf(counter_ref), 2);
 }

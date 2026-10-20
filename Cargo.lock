@@ -2333,7 +2333,7 @@ checksum = "29666d0abbfad1e3dc4dcf6144730dd3a3ab225bbbdac83319345b1b44ccfc1b"
 [[package]]
 name = "zngur"
 version = "0.11.0"
-source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=219c29cdc578cdbb4404b269701a55d3bbd5595b#219c29cdc578cdbb4404b269701a55d3bbd5595b"
+source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=c192d68c58bd42bdbf9f0e77a654016730335437#c192d68c58bd42bdbf9f0e77a654016730335437"
 dependencies = [
  "zngur-generator",
 ]
@@ -2341,7 +2341,7 @@ dependencies = [
 [[package]]
 name = "zngur-def"
 version = "0.11.0"
-source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=219c29cdc578cdbb4404b269701a55d3bbd5595b#219c29cdc578cdbb4404b269701a55d3bbd5595b"
+source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=c192d68c58bd42bdbf9f0e77a654016730335437#c192d68c58bd42bdbf9f0e77a654016730335437"
 dependencies = [
  "indexmap",
  "itertools 0.15.0",
@@ -2350,7 +2350,7 @@ dependencies = [
 [[package]]
 name = "zngur-generator"
 version = "0.11.0"
-source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=219c29cdc578cdbb4404b269701a55d3bbd5595b#219c29cdc578cdbb4404b269701a55d3bbd5595b"
+source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=c192d68c58bd42bdbf9f0e77a654016730335437#c192d68c58bd42bdbf9f0e77a654016730335437"
 dependencies = [
  "askama",
  "hex",
@@ -2364,12 +2364,12 @@ dependencies = [
 [[package]]
 name = "zngur-lib"
 version = "0.11.0"
-source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=219c29cdc578cdbb4404b269701a55d3bbd5595b#219c29cdc578cdbb4404b269701a55d3bbd5595b"
+source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=c192d68c58bd42bdbf9f0e77a654016730335437#c192d68c58bd42bdbf9f0e77a654016730335437"
 
 [[package]]
 name = "zngur-parser"
 version = "0.11.0"
-source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=219c29cdc578cdbb4404b269701a55d3bbd5595b#219c29cdc578cdbb4404b269701a55d3bbd5595b"
+source = "git+file:///usr/local/google/home/asnaider/repos/zngur?rev=c192d68c58bd42bdbf9f0e77a654016730335437#c192d68c58bd42bdbf9f0e77a654016730335437"
 dependencies = [
  "ariadne",
  "chumsky",

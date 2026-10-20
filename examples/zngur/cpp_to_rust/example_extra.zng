@@ -8,7 +8,7 @@ type c++::shapes::Rect {
 
 // `std::make_unique<Canvas>()`, for Rust to create a `Canvas`, which it can only
 // refer to, on the heap. The instantiation `std::unique_ptr<Canvas>` gets its
-// layout and `get()` from `cpp_std.zng`.
+// layout and `get()` / `get_mut()` from `cpp_std.zng`.
 type c++::std::unique_ptr<c++::shapes::Canvas> {}
 
 mod c++::std {

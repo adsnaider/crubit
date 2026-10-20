@@ -32,7 +32,8 @@ type c++::std::unique_ptr<c++::user_of_records::Segment> {
     #layout(size = 8, align = 8);
     #trivially_relocatable;
 
-    safe fn get<'a>(&'a const self) -> c++::user_of_records::Segment*;
+    safe fn get<'a>(&'a const self) -> ::std::option::Option<&'a var c++::user_of_records::Segment>;
+    safe fn get<'a>(&'a unique var self) -> ::std::option::Option<&'a unique var c++::user_of_records::Segment> as get_mut;
 }
 
 mod c++::user_of_records {

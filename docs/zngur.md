@@ -175,7 +175,7 @@ function templates, so an `extra_zng` file can declare `std::make_unique` for
 the type:
 
 ```zng
-// The instantiation gets its layout and `get()` from `cpp_std.zng`.
+// The instantiation gets its layout and `get()` / `get_mut()` from `cpp_std.zng`.
 type c++::std::unique_ptr<c++::shapes::Canvas> {}
 
 mod c++::std {
@@ -185,7 +185,9 @@ mod c++::std {
 
 The parameters are those of the constructor to call. In Rust,
 `<crate>::std::make_canvas()` returns the `std::unique_ptr<Canvas>`, which
-destroys the object when it's dropped. `examples/zngur/cpp_to_rust` does this.
+destroys the object when it's dropped. Its `get()` / `get_mut()` borrow the
+`Canvas` (`None` if the `unique_ptr` is empty). `examples/zngur/cpp_to_rust`
+does this.
 
 ## What crubit describes
 
@@ -223,7 +225,8 @@ keyword.
     `new_copy`, and the others are `new`, `new_2`, ... in declaration order
     (`Point::new_2(1, 2).build()`, `Point::new_copy(&p).build()`).
 -   Free functions, in their namespaces.
--   C++ references, following crubit's own rule (see below).
+-   C++ references, following crubit's own rule, and C++ pointers with lifetime
+    annotations, as nullable references (see below).
 -   Functions, member functions and constructors are `safe` or `unsafe` like in
     crubit's own bindings (see below).
 -   `std::unique_ptr<T>`, for `T` of the same library.
@@ -262,6 +265,19 @@ function taking `this` as a raw pointer. A returned reference whose lifetime
 crubit can't name is raw as well. C++ types with lifetime parameters are
 skipped.
 
+#### C++ pointers
+
+A C++ pointer with a lifetime annotation (`const T* $a`) is a nullable
+reference, whatever its nullability (`_Nullable`, `_Nonnull` or neither):
+`const T*` is `Option<&'a const T>` (`Option<&'a T<Const>>` in Rust) and `T*`
+is `Option<&'a unique var T>` (`Option<&'a mut T>`), so functions taking them
+can be `safe`. (zngur only maps `Option<&T>` to `T*`, and `&T` to `T&`, so a
+non-null pointer is an `Option` too.) Pointers only get lifetimes from
+annotations: `assume_lifetimes` and constructors don't give them any, since a
+function may need a non-null pointer. Other pointers, and returned pointers
+whose lifetime is elided, are raw (`const T*` / `T*`). Fields of pointer type
+keep their accessors.
+
 #### Safety
 
 Whether a function, member function or constructor is `safe` follows crubit's
@@ -274,7 +290,8 @@ warns.
     generated file then silences the warning with `#allow(safe_raw_pointer)`.
 -   Other functions are `unsafe` if they take a raw pointer (a C++ pointer, a
     raw reference or a raw receiver), which may be null or invalid, and `safe`
-    otherwise. References to C++ objects refer to valid objects, and returned
+    otherwise. References to C++ objects refer to valid objects (and nullable
+    references, if they aren't null), and returned
     raw pointers don't make a function `unsafe`. (Like in crubit, `this` doesn't
     count for constructors.)
 

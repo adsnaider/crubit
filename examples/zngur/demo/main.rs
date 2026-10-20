@@ -16,10 +16,9 @@ fn main() {
     println!("[Rust] p = ({}, {})", p.x().get(), p.y().get());
 
     // Generated: a function returning a `std::unique_ptr`.
-    let triangle = MakeTriangle();
-    // SAFETY: `triangle` owns a `Polygon`, which lives as long as it does, and nothing else refers
-    // to it meanwhile.
-    let triangle = unsafe { triangle.get().as_mut() }.expect("null");
+    let mut triangle = MakeTriangle();
+    // `get_mut()` borrows the owned `Polygon` uniquely (`None` if the `unique_ptr` is empty).
+    let triangle = triangle.get_mut().expect("empty std::unique_ptr");
     triangle.Add(&p);
     println!("[Rust] the polygon has {} points", triangle.Size());
 
@@ -35,13 +34,12 @@ fn main() {
     println!("[Rust] reversed, plus one more: {} points", reversed.size());
 
     // Added by hand (shapes_extra.zng, #2): `std::make_unique<Canvas>()`.
-    let canvas = make_canvas();
-    // SAFETY: `canvas` owns a `Canvas`, which lives as long as it does, and nothing else refers to
-    // it meanwhile.
-    let canvas_ref = unsafe { canvas.get().as_mut() }.expect("null");
-    for i in 0..points.size() {
-        canvas_ref.Draw(points.at(i));
+    let mut canvas = make_canvas();
+    if let Some(canvas) = canvas.get_mut() {
+        for i in 0..points.size() {
+            canvas.Draw(points.at(i));
+        }
+        println!("[Rust] drew {} points", canvas.Count());
     }
-    println!("[Rust] drew {} points", canvas_ref.Count());
     drop(canvas);
 }

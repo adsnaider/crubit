@@ -23,7 +23,7 @@ type c++::shapes::Polygon {
 
 // 2. `std::make_unique<Canvas>()`: Rust can only refer to a `Canvas`, so it
 //    can't construct one in place, but it can own one on the heap. The
-//    instantiation `std::unique_ptr<Canvas>` gets its layout and `get()` from
+//    instantiation `std::unique_ptr<Canvas>` gets its layout and `get()` / `get_mut()` from
 //    `cpp_std.zng`.
 type c++::std::unique_ptr<c++::shapes::Canvas> {}
 

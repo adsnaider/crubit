@@ -26,14 +26,13 @@ fn main() {
     // From `example_extra.zng`.
     assert_eq!(rect.area(), 12);
 
-    // `std::unique_ptr` is held by value too, and `get()` gives a C++ pointer to the object.
+    // `std::unique_ptr` is held by value too, and `get()` / `get_mut()` borrow the object it owns
+    // (`None` if it's empty).
     let square = MakeSquare(3);
     // From `example_extra.zng`: `std::make_unique<Canvas>()`.
-    let canvas = make_canvas();
-    // SAFETY: Each `unique_ptr` owns an object, which lives as long as it does, and nothing else
-    // refers to the canvas meanwhile.
-    let (square, canvas) =
-        unsafe { (square.get().as_ref().expect("null"), canvas.get().as_mut().expect("null")) };
+    let mut canvas = make_canvas();
+    let square = square.get().expect("empty std::unique_ptr");
+    let canvas = canvas.get_mut().expect("empty std::unique_ptr");
     canvas.Draw(square);
     canvas.Draw(&rect);
     println!("total area = {}", canvas.TotalArea());

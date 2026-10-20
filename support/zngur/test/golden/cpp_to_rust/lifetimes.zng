@@ -29,5 +29,9 @@ mod c++::lifetimes {
     safe fn ValueMut<'a>(&'a unique var c++::lifetimes::Holder) -> &'a unique var i32;
     safe fn Pick<'a, 'b>(&'a const c++::lifetimes::Holder, &'b const c++::lifetimes::Holder) -> &'a const c++::lifetimes::Holder;
     safe fn Default() -> &'static const c++::lifetimes::Holder;
+    safe fn Find<'a>(::std::option::Option<&'a const c++::lifetimes::Holder>) -> ::std::option::Option<&'a const c++::lifetimes::Holder>;
+    safe fn ValueOrNull<'a>(::std::option::Option<&'a unique var c++::lifetimes::Holder>) -> ::std::option::Option<&'a unique var i32>;
+    safe fn First<'a, 'b>(::std::option::Option<&'a const c++::lifetimes::Holder>, &'b const c++::lifetimes::Holder) -> ::std::option::Option<&'a const c++::lifetimes::Holder>;
     unsafe fn Reset(c++::lifetimes::Holder&);
+    unsafe fn ResetPointer(c++::lifetimes::Holder*);
 }

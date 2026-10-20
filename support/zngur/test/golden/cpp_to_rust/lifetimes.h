@@ -22,8 +22,17 @@ int32_t& $a ValueMut(Holder& $a holder);
 const Holder& $a Pick(const Holder& $a first, const Holder& $b second);
 const Holder& $static Default();
 
+// Pointers with lifetime annotations are nullable references (`Option<&'a const T>`,
+// `Option<&'a unique var T>`), whatever their nullability, so the functions are safe.
+const Holder* $a Find(const Holder* $a holder);
+int32_t* $a _Nullable ValueOrNull(Holder* $a _Nullable holder);
+const Holder* $a _Nonnull First(const Holder* $a _Nonnull first, const Holder& $b second);
+
 // A reference without an annotation is raw, so the function is `unsafe`.
 void Reset(Holder& holder);
+
+// A pointer without an annotation is raw.
+void ResetPointer(Holder* holder);
 
 }  // namespace lifetimes
 

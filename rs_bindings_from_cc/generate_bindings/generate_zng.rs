@@ -37,9 +37,9 @@ use std::path::PathBuf;
 use zngur_def::printing::IDLPrinter;
 use zngur_def::{
     AdditionalIncludes, CppConstness, CppFieldAccess, CppIndirection, CppTypePath, LayoutPolicy,
-    Lifetime, ModuleImport, Mutability, PrimitiveRustType, RustType, TriviallyRelocatable,
-    ZngurCppConstructor, ZngurCppField, ZngurCppFn, ZngurCppMethod, ZngurMethodReceiver, ZngurSpec,
-    ZngurType, ZngurWellknownTrait,
+    Lifetime, ModuleImport, Mutability, PrimitiveRustType, RustPathAndGenerics, RustType,
+    TriviallyRelocatable, ZngurCppConstructor, ZngurCppField, ZngurCppFn, ZngurCppMethod,
+    ZngurMethodReceiver, ZngurSpec, ZngurType, ZngurWellknownTrait,
 };
 
 /// The `.zng` file of a dependency target, which the generated file imports.
@@ -735,14 +735,35 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
         let CcTypeVariant::Pointer(pointer) = ty.variant() else {
             return self.zngur_ty(&ty, Position::Value);
         };
-        if pointer.kind() != PointerTypeKind::LValueRef {
-            return self.zngur_ty(&ty, Position::Value);
-        }
+        // C++ pointers with lifetime information are nullable references (`Option<&'a ...>`),
+        // whatever their nullability, since zngur maps `Option<&T>` to `T*` (and `&T` only to
+        // `T&`).
+        let is_pointer = match pointer.kind() {
+            PointerTypeKind::LValueRef => false,
+            PointerTypeKind::Nullable | PointerTypeKind::NonNull => true,
+            _ => return self.zngur_ty(&ty, Position::Value),
+        };
         let pointee = pointer.pointee_type();
         if pointee.is_unit_type() {
             bail!("`void` pointers are not supported yet");
         }
+        if is_pointer && matches!(pointee.variant(), CcTypeVariant::Pointer(_)) {
+            bail!("pointers to pointers are not supported yet");
+        }
+        let annotated = || -> Result<LifetimeInfo> {
+            Ok(match pointer.lifetime() {
+                Some(id) => LifetimeInfo::Named(self.lifetime_name(id)?),
+                None => LifetimeInfo::None,
+            })
+        };
         let info = match &lowered {
+            // A pointer only gets a lifetime from an annotation (`T* $a`): `assume_lifetimes`
+            // defaults and constructor inference only apply to references, since a pointer
+            // without a known contract may need to be non-null.
+            _ if is_pointer => match lowered.as_ref().map(|l| l.explicit_lifetimes()) {
+                Some([name]) if name.as_ref() != "unknown" => LifetimeInfo::Named(name.to_string()),
+                _ => annotated()?,
+            },
             // `assume_lifetimes`: the defaults are on the lowered type, which is a pointer if no
             // lifetime could be assigned.
             Some(lowered) => match lowered.variant() {
@@ -764,23 +785,35 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
         };
         let pointee_ty = self.zngur_ty(pointee, Position::Exact)?;
         Ok(match sig.resolve(info, /* is_return= */ param.is_none()) {
-            // A reference to a C++ object: `&'a const T`, or `&'a unique var T` (crubit's `&mut`).
+            // A reference to a C++ object: `&'a const T`, or `&'a unique var T` (crubit's `&mut`),
+            // in an `Option` for a pointer.
             Some(lifetime) => {
                 let (m, constness) = if pointee.is_const() {
                     (Mutability::Not, CppConstness::Const)
                 } else {
                     (Mutability::Mut, CppConstness::Var)
                 };
-                RustType::Ref(
+                let reference = RustType::Ref(
                     m,
                     Some(lifetime),
                     Box::new(RustType::cpp_object(constness, pointee_ty)),
-                )
+                );
+                if is_pointer {
+                    RustType::Adt(RustPathAndGenerics {
+                        path: ["std", "option", "Option"].map(str::to_owned).to_vec(),
+                        generics: vec![reference],
+                        ..Default::default()
+                    })
+                } else {
+                    reference
+                }
             }
-            // A raw `const T&` / `T&`.
+            // A raw `const T&` / `T&` / `const T*` / `T*`.
             None => {
                 let m = if pointee.is_const() { Mutability::Not } else { Mutability::Mut };
-                RustType::cpp_ptr(m, CppIndirection::Reference, pointee_ty)
+                let indirection =
+                    if is_pointer { CppIndirection::Pointer } else { CppIndirection::Reference };
+                RustType::cpp_ptr(m, indirection, pointee_ty)
             }
         })
     }
@@ -945,33 +978,50 @@ impl<'a, 'pb> Emitter<'a, 'pb> {
 }
 
 /// `std::unique_ptr<element>`: Rust holds it by value (zngur knows it's trivially relocatable),
-/// and `get()` gives the object. If a module that Rust imports declares
-/// `type<T> c++::std::unique_ptr<T>`, it's the home of the template, and these members are the
-/// same as its defaults.
+/// and `get()` / `get_mut()` borrow the object (`None` if the `unique_ptr` is empty). If a module
+/// that Rust imports declares `type<T> c++::std::unique_ptr<T>`, it's the home of the template, and
+/// these members are the same as its defaults.
 fn unique_ptr_type(element: RustType, size_align: ir::SizeAlign) -> ZngurType {
     let ty = RustType::Cpp(CppTypePath {
         path: vec!["std".to_string(), "unique_ptr".to_string()],
         generics: vec![element.clone()],
     });
+    let a = Lifetime("a".to_string());
+    let get = |m: Mutability, rust_name: Option<&str>| {
+        let constness = match m {
+            Mutability::Not => CppConstness::Const,
+            Mutability::Mut => CppConstness::Var,
+        };
+        ZngurCppMethod {
+            cpp_name: "get".to_string(),
+            lifetimes: vec![a.clone()],
+            template_args: vec![],
+            rust_name: rust_name.map(str::to_string),
+            receiver: ZngurMethodReceiver::Ref(m),
+            receiver_constness: constness,
+            receiver_lifetime: Some(a.clone()),
+            raw_receiver: None,
+            inputs: vec![],
+            // `::std::option::Option<&'a var T>` / `::std::option::Option<&'a unique var T>`.
+            output: RustType::Adt(RustPathAndGenerics {
+                path: ["std", "option", "Option"].map(str::to_owned).to_vec(),
+                generics: vec![RustType::Ref(
+                    m,
+                    Some(a.clone()),
+                    Box::new(RustType::cpp_object(CppConstness::Var, element.clone())),
+                )],
+                ..Default::default()
+            }),
+            is_safe: true,
+        }
+    };
     ZngurType {
         layout: Some(LayoutPolicy::StackAllocated {
             size: size_align.size(),
             align: size_align.alignment(),
         }),
         trivially_relocatable: TriviallyRelocatable::Checked,
-        cpp_methods: vec![ZngurCppMethod {
-            cpp_name: "get".to_string(),
-            lifetimes: vec![Lifetime("a".to_string())],
-            template_args: vec![],
-            rust_name: None,
-            receiver: ZngurMethodReceiver::Ref(Mutability::Not),
-            receiver_constness: CppConstness::Const,
-            receiver_lifetime: Some(Lifetime("a".to_string())),
-            raw_receiver: None,
-            inputs: vec![],
-            output: RustType::cpp_ptr(Mutability::Mut, CppIndirection::Pointer, element),
-            is_safe: true,
-        }],
+        cpp_methods: vec![get(Mutability::Not, None), get(Mutability::Mut, Some("get_mut"))],
         ..empty_zngur_type(ty)
     }
 }

@@ -80,8 +80,10 @@ merges).
   non-movable types (`Ctor`).
 - **Safety.** References follow crubit's lifetime rules, but zngur can't check
   the lifetimes against C++: like crubit's own bindings, they're a promise.
-  Without lifetime information (no `assume_lifetimes` or annotations), C++
-  references are raw pointers, and functions that take them are `unsafe` by
+  C++ pointers with lifetime annotations are nullable references
+  (`Option<&'a ...>`), and `std::unique_ptr`'s `get()` / `get_mut()` return
+  them. Without lifetime information (no `assume_lifetimes` or annotations), C++
+  references and pointers are raw pointers, and functions that take them are `unsafe` by
   default (crubit's default). `CRUBIT_UNSAFE_MARK_SAFE` makes them `safe`, and
   the generated file then has `#allow(safe_raw_pointer)`.
 - **Generated code size.** zngur generates about 4 to 5 times as much code as
