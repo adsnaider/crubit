@@ -215,7 +215,9 @@ keyword.
 -   Classes and structs (`type c++::ns::X`), with their layout:
     -   held by value (`#unsafe(trivially_relocatable)`) when crubit knows that
         they can be moved with `memcpy`;
-    -   otherwise only referred to, through references and pointers.
+    -   otherwise only referred to, through references and pointers. The layout
+        is still there, as a check in C++, so the file silences zngur's warning
+        about it with `#allow(layout_without_relocatable)`.
 -   Public fields: `field &const x` (a `&Cpp<i32, Const>` or `&T<Const>` in
     Rust) and, for non-`const` fields, `field &unique var x as x_mut` (a
     `&mut Cpp<i32>` or `&mut T`).

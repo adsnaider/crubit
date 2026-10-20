@@ -5,6 +5,9 @@
 // Automatically @generated zngur IDL for the following C++ target:
 // //examples/zngur/cpp_to_rust:example_lib
 
+// Types that aren't trivially relocatable keep their layouts, which C++ checks.
+#allow(layout_without_relocatable)
+
 import "../../../support/zngur/cpp_std.zng";
 import "./point_lib_zngur.zng";
 

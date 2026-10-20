@@ -9,6 +9,9 @@
 // skipped: shapes::Polygon::Points: Unsupported type 'const std::vector<shapes::Point>': crubit.rs/errors/unknown_target: Failed to complete template specialization type std::vector<Point>: the template is defined in external/+crubit_toolchains+llvm_toolchain_llvm/include/c++/v1/__vector/vector.h which is not a public header of any Crubit-enabled target that //examples/zngur/demo:shapes depends on directly. Either enable Crubit on the library that provides the header, add that library as a direct dependency (and `#include` the header directly), or move the template to a public header.
 // skipped: shapes::Polygon::Reversed: Unsupported type 'std::vector<shapes::Point>': crubit.rs/errors/unknown_target: Failed to complete template specialization type std::vector<Point>: the template is defined in external/+crubit_toolchains+llvm_toolchain_llvm/include/c++/v1/__vector/vector.h which is not a public header of any Crubit-enabled target that //examples/zngur/demo:shapes depends on directly. Either enable Crubit on the library that provides the header, add that library as a direct dependency (and `#include` the header directly), or move the template to a public header.
 
+// Types that aren't trivially relocatable keep their layouts, which C++ checks.
+#allow(layout_without_relocatable)
+
 import "../../../support/zngur/cpp_std.zng";
 
 #crate shapes_generated

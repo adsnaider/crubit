@@ -81,7 +81,8 @@ pub struct SkippedItem {
 /// the target's features.
 pub fn generate_zng(db: &BindingsGenerator<'_>, options: &ZngOptions) -> Result<String> {
     let ir = db.ir();
-    let ZngSpec { spec, skipped, allows_safe_raw_pointer } = generate_zng_spec(db, options)?;
+    let ZngSpec { spec, skipped, allows_safe_raw_pointer, allows_layout_without_relocatable } =
+        generate_zng_spec(db, options)?;
 
     // Writing to a `String` can't fail, so the `writeln!` results are ignored below.
     let mut out = String::new();
@@ -103,6 +104,14 @@ pub fn generate_zng(db: &BindingsGenerator<'_>, options: &ZngOptions) -> Result<
             "// Some functions are `CRUBIT_UNSAFE_MARK_SAFE`, but take raw pointers."
         );
         let _ = writeln!(out, "#allow(safe_raw_pointer)");
+    }
+    if allows_layout_without_relocatable {
+        let _ = writeln!(out);
+        let _ = writeln!(
+            out,
+            "// Types that aren't trivially relocatable keep their layouts, which C++ checks."
+        );
+        let _ = writeln!(out, "#allow(layout_without_relocatable)");
     }
     let mut idl = Vec::<u8>::new();
     IDLPrinter::new(&mut idl)
@@ -132,6 +141,9 @@ pub struct ZngSpec {
     /// Whether the file must silence zngur's `safe_raw_pointer` warning (`#allow`), because a
     /// `safe` function takes raw pointers.
     pub allows_safe_raw_pointer: bool,
+    /// Whether the file must silence zngur's `layout_without_relocatable` warning (`#allow`),
+    /// because a type that Rust only refers to has a layout (which C++ checks).
+    pub allows_layout_without_relocatable: bool,
 }
 
 /// Builds the `ZngurSpec` for the current target of `db.ir()`, and the list of skipped items.
@@ -174,9 +186,14 @@ pub fn generate_zng_spec(db: &BindingsGenerator<'_>, options: &ZngOptions) -> Re
     }
     emitter.add_items(&mut spec);
     let allows_safe_raw_pointer = emitter.allows_safe_raw_pointer;
+    let allows_layout_without_relocatable = spec.types.iter().any(|ty| {
+        matches!(ty.ty, RustType::Cpp(_))
+            && ty.layout.is_some()
+            && !ty.trivially_relocatable.is_relocatable()
+    });
     let mut skipped = emitter.skipped;
     skipped.sort_by(|a, b| a.path.cmp(&b.path));
-    Ok(ZngSpec { spec, skipped, allows_safe_raw_pointer })
+    Ok(ZngSpec { spec, skipped, allows_safe_raw_pointer, allows_layout_without_relocatable })
 }
 
 /// Returns the path of `path` relative to the directory `dir`, as written in `.zng` files: with
